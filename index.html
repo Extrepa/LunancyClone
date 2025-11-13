@@ -4,489 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Design Tool - Lunacy Clone</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: #1a1a1a;
-      color: #e0e0e0;
-      overflow: hidden;
-      height: 100vh;
-      display: flex;
-    }
-
-    /* Toolbar */
-    .toolbar {
-      width: 64px;
-      background: #252525;
-      border-right: 1px solid #333;
-      display: flex;
-      flex-direction: column;
-      padding: 8px;
-      gap: 4px;
-      z-index: 100;
-    }
-
-    .tool-btn {
-      width: 48px;
-      height: 48px;
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: 8px;
-      color: #e0e0e0;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      transition: all 0.2s;
-      position: relative;
-    }
-
-    .tool-btn:hover {
-      background: #333;
-      border-color: #444;
-    }
-
-    .tool-btn.active {
-      background: #3a3a3a;
-      border-color: #555;
-      color: #4a9eff;
-    }
-
-    .tool-btn[data-tooltip]:hover::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      left: 56px;
-      background: #2a2a2a;
-      color: #e0e0e0;
-      padding: 6px 10px;
-      border-radius: 4px;
-      font-size: 12px;
-      white-space: nowrap;
-      z-index: 1000;
-      border: 1px solid #444;
-      pointer-events: none;
-    }
-
-    /* Canvas Area */
-    .canvas-container {
-      flex: 1;
-      position: relative;
-      background: #2a2a2a;
-      overflow: hidden;
-    }
-
-    .canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      cursor: crosshair;
-    }
-
-    .canvas.select-mode {
-      cursor: default;
-    }
-
-    .canvas.draw-mode {
-      cursor: crosshair;
-    }
-
-    .canvas.text-mode {
-      cursor: text;
-    }
-
-    .canvas.eyedropper-mode {
-      cursor: crosshair;
-    }
-
-    .canvas.scale-mode {
-      cursor: crosshair;
-    }
-
-    /* Right Panel */
-    .right-panel {
-      width: 320px;
-      background: #252525;
-      border-left: 1px solid #333;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-    }
-
-    .panel-section {
-      padding: 16px;
-      border-bottom: 1px solid #333;
-    }
-
-    .panel-section h3 {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #999;
-      margin-bottom: 12px;
-    }
-
-    .panel-control {
-      margin-bottom: 12px;
-    }
-
-    .panel-control label {
-      display: block;
-      font-size: 12px;
-      color: #ccc;
-      margin-bottom: 4px;
-    }
-
-    .panel-control input[type="text"],
-    .panel-control input[type="number"],
-    .panel-control select {
-      width: 100%;
-      padding: 6px 8px;
-      background: #1a1a1a;
-      border: 1px solid #444;
-      border-radius: 4px;
-      color: #e0e0e0;
-      font-size: 12px;
-    }
-
-    .panel-control input[type="range"] {
-      width: 100%;
-    }
-
-    .color-picker {
-      width: 100%;
-      height: 40px;
-      border: 1px solid #444;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    /* Layers Panel */
-    .layers-panel {
-      padding: 16px;
-      border-bottom: 1px solid #333;
-    }
-
-    .layers-list {
-      list-style: none;
-    }
-
-    .layer-item {
-      padding: 8px;
-      margin-bottom: 4px;
-      background: #1a1a1a;
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-    }
-
-    .layer-item:hover {
-      background: #2a2a2a;
-    }
-
-    .layer-item.selected {
-      background: #3a3a3a;
-      border: 1px solid #4a9eff;
-    }
-
-    .layer-visibility {
-      width: 16px;
-      height: 16px;
-      border: 1px solid #555;
-      border-radius: 2px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .layer-visibility.visible::after {
-      content: '👁';
-      font-size: 10px;
-    }
-
-    /* Top Bar */
-    .top-bar {
-      height: 48px;
-      background: #1f1f1f;
-      border-bottom: 1px solid #333;
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 16px;
-    }
-
-    .top-bar h1 {
-      font-size: 14px;
-      font-weight: 600;
-      color: #e0e0e0;
-    }
-
-    .top-bar-actions {
-      margin-left: auto;
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn {
-      padding: 6px 12px;
-      background: #3a3a3a;
-      border: 1px solid #555;
-      border-radius: 4px;
-      color: #e0e0e0;
-      cursor: pointer;
-      font-size: 12px;
-      transition: all 0.2s;
-    }
-
-    .btn:hover {
-      background: #4a4a4a;
-      border-color: #666;
-    }
-
-    .btn-primary {
-      background: #4a9eff;
-      border-color: #4a9eff;
-      color: #fff;
-    }
-
-    .btn-primary:hover {
-      background: #5aaeff;
-    }
-
-    /* Selection handles */
-    .selection-handle {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      background: #4a9eff;
-      border: 2px solid #fff;
-      border-radius: 50%;
-      pointer-events: all;
-      cursor: nwse-resize;
-    }
-
-    .selection-box {
-      position: absolute;
-      border: 2px dashed #4a9eff;
-      pointer-events: none;
-    }
-
-    /* Shape tools submenu */
-    .shape-submenu {
-      position: absolute;
-      left: 64px;
-      background: #2a2a2a;
-      border: 1px solid #444;
-      border-radius: 8px;
-      padding: 8px;
-      display: none;
-      flex-direction: column;
-      gap: 4px;
-      z-index: 200;
-    }
-
-    .shape-submenu.visible {
-      display: flex;
-    }
-
-    .shape-btn {
-      padding: 8px 12px;
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: 4px;
-      color: #e0e0e0;
-      cursor: pointer;
-      font-size: 12px;
-      text-align: left;
-    }
-
-    .shape-btn:hover {
-      background: #333;
-      border-color: #555;
-    }
-
-    /* Status bar */
-    .status-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 24px;
-      background: #1f1f1f;
-      border-top: 1px solid #333;
-      display: flex;
-      align-items: center;
-      padding: 0 12px;
-      font-size: 11px;
-      color: #999;
-    }
-
-    /* Scrollbar styling */
-    .right-panel::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .right-panel::-webkit-scrollbar-track {
-      background: #1a1a1a;
-    }
-
-    .right-panel::-webkit-scrollbar-thumb {
-      background: #444;
-      border-radius: 4px;
-    }
-
-    .right-panel::-webkit-scrollbar-thumb:hover {
-      background: #555;
-    }
-
-    /* Component System */
-    .component-item {
-      padding: 8px;
-      margin-bottom: 4px;
-      background: #1a1a1a;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .component-item:hover {
-      background: #2a2a2a;
-    }
-
-    .component-badge {
-      background: #4a9eff;
-      color: #fff;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-size: 10px;
-    }
-
-    /* Comments */
-    .comment-marker {
-      position: absolute;
-      width: 24px;
-      height: 24px;
-      background: #ffa500;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #000;
-      font-weight: bold;
-      font-size: 12px;
-      z-index: 1000;
-    }
-
-    .comment-popup {
-      position: absolute;
-      background: #2a2a2a;
-      border: 1px solid #444;
-      border-radius: 8px;
-      padding: 12px;
-      min-width: 200px;
-      max-width: 300px;
-      z-index: 1001;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-
-    .comment-popup textarea {
-      width: 100%;
-      min-height: 60px;
-      background: #1a1a1a;
-      border: 1px solid #444;
-      border-radius: 4px;
-      color: #e0e0e0;
-      padding: 8px;
-      font-size: 12px;
-      resize: vertical;
-      font-family: inherit;
-    }
-
-    /* Asset Library */
-    .asset-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      padding: 8px 0;
-    }
-
-    .asset-item {
-      aspect-ratio: 1;
-      background: #1a1a1a;
-      border: 1px solid #444;
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      transition: all 0.2s;
-    }
-
-    .asset-item:hover {
-      background: #2a2a2a;
-      border-color: #4a9eff;
-    }
-
-    /* Bézier Curve Handles */
-    .bezier-handle {
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      background: #ffa500;
-      border: 2px solid #fff;
-      border-radius: 50%;
-      cursor: pointer;
-      z-index: 1000;
-    }
-
-    .bezier-line {
-      stroke: #ffa500;
-      stroke-width: 1;
-      stroke-dasharray: 3,3;
-      pointer-events: none;
-    }
-
-    /* Auto Layout Controls */
-    .layout-controls {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-    }
-
-    .layout-btn {
-      padding: 4px 8px;
-      background: #1a1a1a;
-      border: 1px solid #444;
-      border-radius: 4px;
-      color: #e0e0e0;
-      cursor: pointer;
-      font-size: 11px;
-    }
-
-    .layout-btn.active {
-      background: #4a9eff;
-      border-color: #4a9eff;
-    }
-
-    .layout-btn:hover {
-      background: #2a2a2a;
-    }
-  </style>
+  <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
   <!-- Toolbar -->
@@ -548,8 +66,27 @@
     <div class="panel-section">
       <h3>Properties</h3>
       <div class="panel-control">
+        <label>Fill Type</label>
+        <select id="fillType">
+          <option value="solid">Solid</option>
+          <option value="gradient">Gradient</option>
+        </select>
+      </div>
+      <div class="panel-control" id="fillColorControl">
         <label>Fill Color</label>
         <input type="color" id="fillColor" class="color-picker" value="#4a9eff">
+      </div>
+      <div class="panel-control" id="gradientControls" style="display: none;">
+        <label>Gradient Start</label>
+        <input type="color" id="gradientStart" class="color-picker" value="#4a9eff">
+        <label style="margin-top: 8px;">Gradient End</label>
+        <input type="color" id="gradientEnd" class="color-picker" value="#3a8eef">
+        <label style="margin-top: 8px;">Gradient Direction</label>
+        <select id="gradientDirection">
+          <option value="horizontal">Horizontal</option>
+          <option value="vertical">Vertical</option>
+          <option value="diagonal">Diagonal</option>
+        </select>
       </div>
       <div class="panel-control">
         <label>Stroke Color</label>
@@ -564,6 +101,35 @@
         <label>Opacity</label>
         <input type="range" id="opacity" min="0" max="1" step="0.01" value="1">
         <span id="opacityValue">100%</span>
+      </div>
+    </div>
+    <div class="panel-section" id="textFormatSection" style="display: none;">
+      <h3>Text Formatting</h3>
+      <div class="panel-control">
+        <label>Font Size</label>
+        <input type="number" id="fontSize" value="16" min="8" max="200">
+      </div>
+      <div class="panel-control">
+        <label>Font Weight</label>
+        <select id="fontWeight">
+          <option value="normal">Normal</option>
+          <option value="bold">Bold</option>
+        </select>
+      </div>
+      <div class="panel-control">
+        <label>Font Style</label>
+        <select id="fontStyle">
+          <option value="normal">Normal</option>
+          <option value="italic">Italic</option>
+        </select>
+      </div>
+      <div class="panel-control">
+        <label>Text Align</label>
+        <select id="textAlign">
+          <option value="left">Left</option>
+          <option value="center">Center</option>
+          <option value="right">Right</option>
+        </select>
       </div>
     </div>
     <div class="panel-section">
@@ -658,6 +224,7 @@
       currentTool: 'select',
       shapes: [],
       selectedShape: null,
+      selectedShapes: [],
       isDrawing: false,
       startX: 0,
       startY: 0,
@@ -675,7 +242,20 @@
       scaleStartX: 0,
       scaleStartY: 0,
       scaleCenterX: 0,
-      scaleCenterY: 0
+      scaleCenterY: 0,
+      guiType: 'button',
+      isDrawingSlice: false,
+      sliceStartX: 0,
+      sliceStartY: 0,
+      isSelecting: false,
+      selectionStartX: 0,
+      selectionStartY: 0,
+      isTransforming: false,
+      transformHandle: null,
+      transformStartX: 0,
+      transformStartY: 0,
+      transformStartShape: null,
+      clipboard: []
     };
 
     // Canvas Setup
@@ -772,7 +352,62 @@
         }
       },
       'm': 'image',
-      'b': 'gui',
+      'b': () => {
+        if (state.currentTool === 'gui') {
+          const types = ['button', 'input', 'checkbox', 'radio', 'slider', 'switch'];
+          const currentIdx = types.indexOf(state.guiType || 'button');
+          state.guiType = types[(currentIdx + 1) % types.length];
+          updateStatus(`GUI type: ${state.guiType}`);
+        } else {
+          selectTool('gui');
+          state.guiType = 'button';
+        }
+      },
+      'd': () => {
+        if (state.currentTool === 'gui') {
+          state.guiType = 'input';
+          updateStatus('GUI type: input');
+        } else {
+          selectTool('gui');
+          state.guiType = 'input';
+        }
+      },
+      'f': () => {
+        if (state.currentTool === 'gui') {
+          state.guiType = 'checkbox';
+          updateStatus('GUI type: checkbox');
+        } else {
+          selectTool('gui');
+          state.guiType = 'checkbox';
+        }
+      },
+      'y': () => {
+        if (state.currentTool === 'gui') {
+          state.guiType = 'radio';
+          updateStatus('GUI type: radio');
+        } else {
+          selectTool('gui');
+          state.guiType = 'radio';
+        }
+      },
+      'j': () => {
+        if (state.currentTool === 'gui') {
+          state.guiType = 'slider';
+          updateStatus('GUI type: slider');
+        } else {
+          selectTool('gui');
+          state.guiType = 'slider';
+        }
+      },
+      'w': () => {
+        if (state.currentTool === 'gui') {
+          state.guiType = 'switch';
+          updateStatus('GUI type: switch');
+        } else {
+          selectTool('gui');
+          state.guiType = 'switch';
+        }
+      },
       'x': 'icon',
       'c': 'comment',
       'k': 'scale',
@@ -807,9 +442,45 @@
         } else {
           undo();
         }
-      } else if (key === 'delete' || key === 'backspace') {
+      } else if (key === 'b' && e.metaKey && e.shiftKey) {
+        e.preventDefault();
+        // Rotate Copies tool (⌘⇧B)
         if (state.selectedShape) {
-          deleteShape(state.selectedShape);
+          createRotateCopies(state.selectedShape);
+        } else {
+          updateStatus('Select a shape first to create rotated copies');
+        }
+      } else if (key === 'c' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        // Copy (Cmd/Ctrl+C)
+        if (state.selectedShape || state.selectedShapes.length > 0) {
+          copyShapes();
+        }
+      } else if (key === 'v' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        // Paste (Cmd/Ctrl+V)
+        pasteShapes();
+      } else if (key === 'd' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        // Duplicate (Cmd/Ctrl+D)
+        if (state.selectedShape || state.selectedShapes.length > 0) {
+          duplicateShapes();
+        }
+      } else if (key === 'g' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        // Group (Cmd/Ctrl+G)
+        if (state.selectedShapes.length > 1) {
+          groupShapes();
+        }
+      } else if (key === 'g' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+        e.preventDefault();
+        // Ungroup (Cmd/Ctrl+Shift+G)
+        if (state.selectedShape && state.selectedShape._group) {
+          ungroupShapes();
+        }
+      } else if (key === 'delete' || key === 'backspace') {
+        if (state.selectedShape || state.selectedShapes.length > 0) {
+          deleteSelectedShapes();
         }
       }
     });
@@ -827,6 +498,7 @@
     canvas.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('mouseleave', handleMouseUp);
 
+    // Coordinate conversion (using utility module)
     function getCanvasPos(e) {
       const rect = canvas.getBoundingClientRect();
       return {
@@ -842,19 +514,65 @@
       state.isDrawing = true;
 
       if (state.currentTool === 'select') {
+        // Check if clicking on a transform handle
+        if (state.selectedShape) {
+          const rect = canvas.getBoundingClientRect();
+          const screenX = e.clientX - rect.left;
+          const screenY = e.clientY - rect.top;
+          const handle = getHandleAt(screenX, screenY, state.selectedShape);
+          
+          if (handle) {
+            state.isTransforming = true;
+            state.transformHandle = handle.type;
+            state.transformStartX = pos.x;
+            state.transformStartY = pos.y;
+            state.transformStartShape = cloneStateUtil ? cloneStateUtil(state.selectedShape) : JSON.parse(JSON.stringify(state.selectedShape));
+            canvas.style.cursor = handle.cursor;
+            return;
+          }
+        }
+        
         // Check if clicking on a shape
         const clickedShape = findShapeAt(pos.x, pos.y);
         if (clickedShape) {
-          selectShape(clickedShape);
-          state.selectedShape = clickedShape;
-          // Enable path editing if it's a pen/pencil path
-          if (clickedShape.type === 'pen' || clickedShape.type === 'pencil') {
-            enablePathEditing(clickedShape);
+          // Multi-select: Shift/Cmd/Ctrl + Click
+          if (e.shiftKey || e.metaKey || e.ctrlKey) {
+            if (state.selectedShapes.includes(clickedShape)) {
+              // Deselect if already selected
+              state.selectedShapes = state.selectedShapes.filter(s => s !== clickedShape);
+              if (state.selectedShapes.length === 0) {
+                state.selectedShape = null;
+              } else {
+                state.selectedShape = state.selectedShapes[0];
+              }
+            } else {
+              // Add to selection
+              state.selectedShapes.push(clickedShape);
+              state.selectedShape = clickedShape;
+            }
+            updateLayersList();
+            redraw();
+          } else {
+            // Single select
+            selectShape(clickedShape);
+            state.selectedShape = clickedShape;
+            state.selectedShapes = [clickedShape];
+            // Enable path editing if it's a pen/pencil path
+            if (clickedShape.type === 'pen' || clickedShape.type === 'pencil') {
+              enablePathEditing(clickedShape);
+            }
           }
         } else {
-          deselectShape();
-          state.editingPath = null;
-          document.querySelectorAll('.bezier-handle, .bezier-line').forEach(el => el.remove());
+          // Start selection box if not clicking on shape
+          if (!e.shiftKey && !e.metaKey && !e.ctrlKey) {
+            deselectShape();
+            state.selectedShapes = [];
+            state.editingPath = null;
+            document.querySelectorAll('.bezier-handle, .bezier-line').forEach(el => el.remove());
+            state.isSelecting = true;
+            state.selectionStartX = pos.x;
+            state.selectionStartY = pos.y;
+          }
         }
       } else if (state.currentTool === 'hand') {
         state.isPanning = true;
@@ -904,6 +622,40 @@
           deselectShape();
           state.scalingShape = null;
         }
+      } else if (state.currentTool === 'icon') {
+        // Icon tool: insert icon from asset library
+        const allAssets = [...assetLibrary.icons, ...assetLibrary.shapes, ...assetLibrary.ui];
+        const randomIcon = allAssets[Math.floor(Math.random() * allAssets.length)];
+        createText(pos.x, pos.y, randomIcon);
+        updateStatus('Icon inserted');
+      } else if (state.currentTool === 'avatar') {
+        // Avatar tool: insert circular image
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (ev) => {
+          const file = ev.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              createAvatar(pos.x, pos.y, e.target.result);
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        input.click();
+      } else if (state.currentTool === 'hotspot') {
+        // Hotspot tool: create interactive hotspot
+        createHotspot(pos.x, pos.y);
+      } else if (state.currentTool === 'slice') {
+        // Slice tool: create export region
+        state.sliceStartX = pos.x;
+        state.sliceStartY = pos.y;
+        state.isDrawingSlice = true;
+      } else if (state.currentTool === 'gui') {
+        // GUI tool: create UI element (button by default, cycle with B/D/F/Y/J/W)
+        const guiType = state.guiType || 'button';
+        createGUIElement(pos.x, pos.y, guiType);
       }
     }
 
@@ -958,6 +710,35 @@
         return;
       }
 
+      if (state.currentTool === 'slice' && state.isDrawingSlice) {
+        // Draw slice preview
+        redraw();
+        drawSlicePreview(state.sliceStartX, state.sliceStartY, pos.x, pos.y);
+        return;
+      }
+
+      if (state.currentTool === 'select' && state.isSelecting) {
+        // Draw selection box
+        redraw();
+        drawSelectionBox(state.selectionStartX, state.selectionStartY, pos.x, pos.y);
+        return;
+      }
+
+      if (state.currentTool === 'select' && state.isTransforming && state.selectedShape) {
+        applyTransform(state.transformHandle, pos.x, pos.y);
+        redraw();
+        return;
+      }
+
+      // Update cursor for transform handles
+      if (state.currentTool === 'select' && state.selectedShape && !state.isTransforming && !state.isSelecting) {
+        const rect = canvas.getBoundingClientRect();
+        const screenX = e.clientX - rect.left;
+        const screenY = e.clientY - rect.top;
+        const handle = getHandleAt(screenX, screenY, state.selectedShape);
+        canvas.style.cursor = handle ? handle.cursor : 'default';
+      }
+
       if (!state.isDrawing) return;
 
       if (state.currentTool === 'pen' || state.currentTool === 'pencil') {
@@ -972,7 +753,7 @@
         state.currentPath.push(point);
         redraw();
         drawCurrentPath();
-      } else if (state.currentTool !== 'select' && state.currentTool !== 'text' && state.currentTool !== 'eyedropper' && state.currentTool !== 'scale') {
+      } else if (state.currentTool !== 'select' && state.currentTool !== 'text' && state.currentTool !== 'eyedropper' && state.currentTool !== 'scale' && state.currentTool !== 'slice' && state.currentTool !== 'icon' && state.currentTool !== 'hotspot' && state.currentTool !== 'avatar' && state.currentTool !== 'gui') {
         redraw();
         drawPreview(pos.x, pos.y);
       }
@@ -988,6 +769,48 @@
         saveState();
         state.scalingShape = null;
         updateStatus('Scale complete');
+        return;
+      }
+
+      if (state.currentTool === 'slice' && state.isDrawingSlice) {
+        createSlice(state.sliceStartX, state.sliceStartY, pos.x - state.sliceStartX, pos.y - state.sliceStartY);
+        state.isDrawingSlice = false;
+        redraw();
+        return;
+      }
+
+      if (state.currentTool === 'select' && state.isSelecting) {
+        // Complete selection box
+        const minX = Math.min(state.selectionStartX, pos.x);
+        const maxX = Math.max(state.selectionStartX, pos.x);
+        const minY = Math.min(state.selectionStartY, pos.y);
+        const maxY = Math.max(state.selectionStartY, pos.y);
+        
+        const selected = state.shapes.filter(shape => {
+          if (shape.visible === false) return false;
+          const shapeRight = shape.x + (shape.width || 0);
+          const shapeBottom = shape.y + (shape.height || 0);
+          return shape.x >= minX && shapeRight <= maxX && shape.y >= minY && shapeBottom <= maxY;
+        });
+        
+        if (selected.length > 0) {
+          state.selectedShapes = selected;
+          state.selectedShape = selected[0];
+          updateLayersList();
+        }
+        state.isSelecting = false;
+        redraw();
+        return;
+      }
+
+      if (state.currentTool === 'select' && state.isTransforming) {
+        saveState();
+        state.isTransforming = false;
+        state.transformHandle = null;
+        state.transformStartShape = null;
+        canvas.style.cursor = 'default';
+        updatePropertiesPanel(state.selectedShape);
+        redraw();
         return;
       }
 
@@ -1094,6 +917,208 @@
       img.src = src;
     }
 
+    function createAvatar(x, y, src) {
+      saveState();
+      const img = new Image();
+      img.onload = () => {
+        const size = Math.min(img.width, img.height, 100);
+        const shape = {
+          id: Date.now(),
+          type: 'avatar',
+          x: x,
+          y: y,
+          width: size,
+          height: size,
+          src: src,
+          opacity: 1,
+          rotation: 0
+        };
+        state.shapes.push(shape);
+        updateLayersList();
+        selectShape(shape);
+        redraw();
+      };
+      img.src = src;
+    }
+
+    function createHotspot(x, y) {
+      saveState();
+      const shape = {
+        id: Date.now(),
+        type: 'hotspot',
+        x: x - 15,
+        y: y - 15,
+        width: 30,
+        height: 30,
+        fill: 'rgba(74, 158, 255, 0.3)',
+        stroke: '#4a9eff',
+        strokeWidth: 2,
+        opacity: 1,
+        rotation: 0
+      };
+      state.shapes.push(shape);
+      updateLayersList();
+      selectShape(shape);
+      redraw();
+      updateStatus('Hotspot created');
+    }
+
+    function createGUIElement(x, y, type) {
+      saveState();
+      let shape;
+      const defaultWidth = 120;
+      const defaultHeight = 40;
+      
+      switch(type) {
+        case 'button':
+          shape = {
+            id: Date.now(),
+            type: 'gui',
+            guiType: 'button',
+            x: x,
+            y: y,
+            width: defaultWidth,
+            height: defaultHeight,
+            fill: '#4a9eff',
+            stroke: '#3a8eef',
+            strokeWidth: 1,
+            opacity: 1,
+            rotation: 0,
+            text: 'Button'
+          };
+          break;
+        case 'input':
+          shape = {
+            id: Date.now(),
+            type: 'gui',
+            guiType: 'input',
+            x: x,
+            y: y,
+            width: defaultWidth,
+            height: defaultHeight,
+            fill: '#ffffff',
+            stroke: '#cccccc',
+            strokeWidth: 1,
+            opacity: 1,
+            rotation: 0,
+            text: 'Input text...'
+          };
+          break;
+        case 'checkbox':
+          shape = {
+            id: Date.now(),
+            type: 'gui',
+            guiType: 'checkbox',
+            x: x,
+            y: y,
+            width: 20,
+            height: 20,
+            fill: '#ffffff',
+            stroke: '#cccccc',
+            strokeWidth: 1,
+            opacity: 1,
+            rotation: 0
+          };
+          break;
+        case 'radio':
+          shape = {
+            id: Date.now(),
+            type: 'gui',
+            guiType: 'radio',
+            x: x,
+            y: y,
+            width: 20,
+            height: 20,
+            fill: '#ffffff',
+            stroke: '#cccccc',
+            strokeWidth: 1,
+            opacity: 1,
+            rotation: 0
+          };
+          break;
+        case 'slider':
+          shape = {
+            id: Date.now(),
+            type: 'gui',
+            guiType: 'slider',
+            x: x,
+            y: y,
+            width: defaultWidth,
+            height: 6,
+            fill: '#4a9eff',
+            stroke: '#cccccc',
+            strokeWidth: 1,
+            opacity: 1,
+            rotation: 0
+          };
+          break;
+        case 'switch':
+          shape = {
+            id: Date.now(),
+            type: 'gui',
+            guiType: 'switch',
+            x: x,
+            y: y,
+            width: 50,
+            height: 30,
+            fill: '#4a9eff',
+            stroke: '#3a8eef',
+            strokeWidth: 1,
+            opacity: 1,
+            rotation: 0
+          };
+          break;
+        default:
+          shape = {
+            id: Date.now(),
+            type: 'gui',
+            guiType: 'button',
+            x: x,
+            y: y,
+            width: defaultWidth,
+            height: defaultHeight,
+            fill: '#4a9eff',
+            stroke: '#3a8eef',
+            strokeWidth: 1,
+            opacity: 1,
+            rotation: 0,
+            text: 'Button'
+          };
+      }
+      
+      state.shapes.push(shape);
+      updateLayersList();
+      selectShape(shape);
+      redraw();
+      updateStatus(`GUI ${type} created`);
+    }
+
+    function createRotateCopies(shape) {
+      saveState();
+      const copies = 8;
+      const radius = Math.max(shape.width || 100, shape.height || 100) * 1.5;
+      const centerX = shape.x + (shape.width || 100) / 2;
+      const centerY = shape.y + (shape.height || 100) / 2;
+      
+      for (let i = 1; i < copies; i++) {
+        const angle = (i * 2 * Math.PI) / copies;
+        const offsetX = Math.cos(angle) * radius;
+        const offsetY = Math.sin(angle) * radius;
+        
+        const copy = JSON.parse(JSON.stringify(shape));
+        copy.id = Date.now() + i;
+        copy.x = centerX + offsetX - (copy.width || 100) / 2;
+        copy.y = centerY + offsetY - (copy.height || 100) / 2;
+        copy.rotation = (copy.rotation || 0) + (i * 360) / copies;
+        
+        state.shapes.push(copy);
+      }
+      
+      updateLayersList();
+      redraw();
+      updateStatus(`Created ${copies - 1} rotated copies`);
+    }
+
     function createPath(points, isPencil) {
       saveState();
       const shape = {
@@ -1115,13 +1140,47 @@
       ctx.save();
       ctx.globalAlpha = shape.opacity || 1;
       
+      // Apply blur effect if present
+      if (shape.blur && shape.blur > 0) {
+        ctx.filter = `blur(${shape.blur}px)`;
+      }
+      
+      // Apply shadow if present
+      if (shape.shadow) {
+        ctx.shadowColor = shape.shadowColor || 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = shape.shadowBlur || 10;
+        ctx.shadowOffsetX = shape.shadowOffsetX || 2;
+        ctx.shadowOffsetY = shape.shadowOffsetY || 2;
+      }
+      
       if (shape.rotation) {
         ctx.translate(shape.x + shape.width / 2, shape.y + shape.height / 2);
         ctx.rotate((shape.rotation * Math.PI) / 180);
         ctx.translate(-(shape.x + shape.width / 2), -(shape.y + shape.height / 2));
       }
 
-      ctx.fillStyle = shape.fill || 'transparent';
+      // Setup fill (gradient or solid)
+      if (shape.fillType === 'gradient' && shape.gradientStart && shape.gradientEnd) {
+        let gradient;
+        const x0 = shape.x;
+        const y0 = shape.y;
+        const x1 = shape.x + (shape.width || 0);
+        const y1 = shape.y + (shape.height || 0);
+        
+        if (shape.gradientDirection === 'horizontal') {
+          gradient = ctx.createLinearGradient(x0, y0, x1, y0);
+        } else if (shape.gradientDirection === 'vertical') {
+          gradient = ctx.createLinearGradient(x0, y0, x0, y1);
+        } else { // diagonal
+          gradient = ctx.createLinearGradient(x0, y0, x1, y1);
+        }
+        gradient.addColorStop(0, shape.gradientStart);
+        gradient.addColorStop(1, shape.gradientEnd);
+        ctx.fillStyle = gradient;
+      } else {
+        ctx.fillStyle = shape.fill || 'transparent';
+      }
+      
       ctx.strokeStyle = shape.stroke || '#000';
       ctx.lineWidth = shape.strokeWidth || 0;
 
@@ -1168,9 +1227,14 @@
           ctx.setLineDash([]);
           break;
         case 'text':
-          ctx.fillStyle = shape.fill;
-          ctx.font = `${shape.fontSize}px sans-serif`;
-          ctx.fillText(shape.text, shape.x, shape.y);
+          ctx.fillStyle = shape.fill || '#000000';
+          const fontSize = shape.fontSize || 16;
+          const fontWeight = shape.fontWeight || 'normal';
+          const fontStyle = shape.fontStyle || 'normal';
+          ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px sans-serif`;
+          ctx.textAlign = shape.textAlign || 'left';
+          ctx.textBaseline = 'top';
+          ctx.fillText(shape.text || '', shape.x, shape.y);
           break;
         case 'image':
           if (shape._img && shape._img.complete) {
@@ -1215,7 +1279,86 @@
             ctx.stroke();
           }
           break;
+        case 'avatar':
+          if (shape._img && shape._img.complete) {
+            ctx.beginPath();
+            ctx.arc(shape.x + shape.width / 2, shape.y + shape.height / 2, shape.width / 2, 0, Math.PI * 2);
+            ctx.save();
+            ctx.clip();
+            ctx.drawImage(shape._img, shape.x, shape.y, shape.width, shape.height);
+            ctx.restore();
+            // Draw border
+            ctx.strokeStyle = shape.stroke || '#cccccc';
+            ctx.lineWidth = shape.strokeWidth || 1;
+            ctx.beginPath();
+            ctx.arc(shape.x + shape.width / 2, shape.y + shape.height / 2, shape.width / 2, 0, Math.PI * 2);
+            ctx.stroke();
+          } else {
+            const img = new Image();
+            img.onload = () => {
+              shape._img = img;
+              redraw();
+            };
+            img.src = shape.src;
+          }
+          break;
+        case 'hotspot':
+          ctx.fillStyle = shape.fill;
+          ctx.strokeStyle = shape.stroke;
+          ctx.lineWidth = shape.strokeWidth;
+          ctx.beginPath();
+          ctx.arc(shape.x + shape.width / 2, shape.y + shape.height / 2, shape.width / 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          // Draw hotspot icon
+          ctx.fillStyle = shape.stroke;
+          ctx.beginPath();
+          ctx.arc(shape.x + shape.width / 2, shape.y + shape.height / 2, 4, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case 'gui':
+          ctx.fillStyle = shape.fill;
+          ctx.strokeStyle = shape.stroke;
+          ctx.lineWidth = shape.strokeWidth;
+          if (shape.guiType === 'radio') {
+            ctx.beginPath();
+            ctx.arc(shape.x + shape.width / 2, shape.y + shape.height / 2, shape.width / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          } else if (shape.guiType === 'checkbox') {
+            ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
+            ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+          } else {
+            ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
+            ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+            if (shape.text) {
+              ctx.fillStyle = shape.guiType === 'button' ? '#ffffff' : '#000000';
+              ctx.font = '14px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(shape.text, shape.x + shape.width / 2, shape.y + shape.height / 2);
+            }
+          }
+          break;
+        case 'slice':
+          ctx.strokeStyle = '#ff6b6b';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 5]);
+          ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+          ctx.setLineDash([]);
+          // Draw slice label
+          ctx.fillStyle = '#ff6b6b';
+          ctx.font = '12px sans-serif';
+          ctx.fillText('Slice', shape.x + 5, shape.y - 5);
+          break;
       }
+      
+      // Reset filters and shadows before restore
+      ctx.filter = 'none';
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
       
       ctx.restore();
     }
@@ -1335,6 +1478,42 @@
       ctx.restore();
     }
 
+    function drawSlicePreview(x1, y1, x2, y2) {
+      ctx.save();
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(
+        Math.min(x1, x2),
+        Math.min(y1, y2),
+        Math.abs(x2 - x1),
+        Math.abs(y2 - y1)
+      );
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    function createSlice(x, y, w, h) {
+      saveState();
+      const shape = {
+        id: Date.now(),
+        type: 'slice',
+        x: Math.min(x, x + w),
+        y: Math.min(y, y + h),
+        width: Math.abs(w),
+        height: Math.abs(h),
+        fill: 'transparent',
+        stroke: '#ff6b6b',
+        strokeWidth: 2,
+        opacity: 1,
+        rotation: 0
+      };
+      state.shapes.push(shape);
+      updateLayersList();
+      selectShape(shape);
+      updateStatus('Slice created');
+    }
+
     function redraw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
@@ -1352,7 +1531,11 @@
       });
       
       // Draw selection
-      if (state.selectedShape) {
+      if (state.selectedShapes.length > 0) {
+        state.selectedShapes.forEach(shape => {
+          drawSelection(shape);
+        });
+      } else if (state.selectedShape) {
         drawSelection(state.selectedShape);
       }
       
@@ -1381,6 +1564,43 @@
       }
     }
 
+    function getTransformHandles(shape) {
+      if (!shape || (shape.width === undefined && shape.height === undefined)) return [];
+      
+      const w = shape.width || 0;
+      const h = shape.height || 0;
+      const x = shape.x;
+      const y = shape.y;
+      
+      return [
+        { type: 'nw', x: x - 2, y: y - 2, cursor: 'nwse-resize' },      // Top-left
+        { type: 'ne', x: x + w + 2, y: y - 2, cursor: 'nesw-resize' },  // Top-right
+        { type: 'sw', x: x - 2, y: y + h + 2, cursor: 'nesw-resize' }, // Bottom-left
+        { type: 'se', x: x + w + 2, y: y + h + 2, cursor: 'nwse-resize' }, // Bottom-right
+        { type: 'n', x: x + w / 2, y: y - 2, cursor: 'ns-resize' },     // Top
+        { type: 's', x: x + w / 2, y: y + h + 2, cursor: 'ns-resize' }, // Bottom
+        { type: 'w', x: x - 2, y: y + h / 2, cursor: 'ew-resize' },     // Left
+        { type: 'e', x: x + w + 2, y: y + h / 2, cursor: 'ew-resize' }, // Right
+        { type: 'rotate', x: x + w / 2, y: y - 30, cursor: 'grab' }     // Rotate handle
+      ];
+    }
+
+    function getHandleAt(x, y, shape) {
+      const handles = getTransformHandles(shape);
+      const handleSize = 6;
+      
+      for (const handle of handles) {
+        const screenX = (handle.x + state.panX) * state.zoom;
+        const screenY = (handle.y + state.panY) * state.zoom;
+        const dx = x - screenX;
+        const dy = y - screenY;
+        if (Math.abs(dx) < handleSize && Math.abs(dy) < handleSize) {
+          return handle;
+        }
+      }
+      return null;
+    }
+
     function drawSelection(shape) {
       ctx.save();
       ctx.strokeStyle = '#4a9eff';
@@ -1388,6 +1608,42 @@
       ctx.setLineDash([5, 5]);
       ctx.strokeRect(shape.x - 2, shape.y - 2, (shape.width || 0) + 4, (shape.height || 0) + 4);
       ctx.setLineDash([]);
+      
+      // Draw transform handles if select tool is active
+      if (state.currentTool === 'select' && shape === state.selectedShape && !state.isSelecting) {
+        const handles = getTransformHandles(shape);
+        
+        // Draw rotation handle line
+        if (handles.length > 0) {
+          const rotateHandle = handles[handles.length - 1];
+          const centerX = shape.x + (shape.width || 0) / 2;
+          const centerY = shape.y + (shape.height || 0) / 2;
+          
+          ctx.strokeStyle = '#4a9eff';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(rotateHandle.x, rotateHandle.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        
+        // Draw all handles
+        handles.forEach(handle => {
+          ctx.fillStyle = handle.type === 'rotate' ? '#ffa500' : '#4a9eff';
+          ctx.beginPath();
+          if (handle.type === 'rotate') {
+            ctx.arc(handle.x, handle.y, 6, 0, Math.PI * 2);
+          } else {
+            ctx.fillRect(handle.x - 4, handle.y - 4, 8, 8);
+          }
+          ctx.fill();
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        });
+      }
       
       // Draw scale handle if scale tool is active
       if (state.currentTool === 'scale' && shape === state.selectedShape) {
@@ -1417,6 +1673,95 @@
       }
       
       ctx.restore();
+    }
+
+    function drawSelectionBox(x1, y1, x2, y2) {
+      ctx.save();
+      ctx.strokeStyle = '#4a9eff';
+      ctx.fillStyle = 'rgba(74, 158, 255, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      const minX = Math.min(x1, x2);
+      const minY = Math.min(y1, y2);
+      const width = Math.abs(x2 - x1);
+      const height = Math.abs(y2 - y1);
+      ctx.fillRect(minX, minY, width, height);
+      ctx.strokeRect(minX, minY, width, height);
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    function applyTransform(handleType, x, y) {
+      if (!state.selectedShape || !state.transformStartShape) return;
+      
+      const shape = state.selectedShape;
+      const start = state.transformStartShape;
+      const dx = x - state.transformStartX;
+      const dy = y - state.transformStartY;
+      
+      if (handleType === 'rotate') {
+        const centerX = start.x + (start.width || 0) / 2;
+        const centerY = start.y + (start.height || 0) / 2;
+        const startAngle = Math.atan2(state.transformStartY - centerY, state.transformStartX - centerX);
+        const currentAngle = Math.atan2(y - centerY, x - centerX);
+        const rotation = (currentAngle - startAngle) * (180 / Math.PI);
+        shape.rotation = (start.rotation || 0) + rotation;
+        document.getElementById('rotation').value = shape.rotation;
+        document.getElementById('rotationValue').textContent = Math.round(shape.rotation) + '°';
+      } else {
+        // Resize handles
+        const startX = start.x;
+        const startY = start.y;
+        const startW = start.width || 0;
+        const startH = start.height || 0;
+        
+        switch(handleType) {
+          case 'nw':
+            shape.x = startX + dx;
+            shape.y = startY + dy;
+            shape.width = startW - dx;
+            shape.height = startH - dy;
+            break;
+          case 'ne':
+            shape.y = startY + dy;
+            shape.width = startW + dx;
+            shape.height = startH - dy;
+            break;
+          case 'sw':
+            shape.x = startX + dx;
+            shape.width = startW - dx;
+            shape.height = startH + dy;
+            break;
+          case 'se':
+            shape.width = startW + dx;
+            shape.height = startH + dy;
+            break;
+          case 'n':
+            shape.y = startY + dy;
+            shape.height = startH - dy;
+            break;
+          case 's':
+            shape.height = startH + dy;
+            break;
+          case 'w':
+            shape.x = startX + dx;
+            shape.width = startW - dx;
+            break;
+          case 'e':
+            shape.width = startW + dx;
+            break;
+        }
+        
+        // Ensure minimum size
+        if (shape.width < 5) shape.width = 5;
+        if (shape.height < 5) shape.height = 5;
+        
+        // Update properties panel
+        if (shape.x !== undefined) document.getElementById('posX').value = Math.round(shape.x);
+        if (shape.y !== undefined) document.getElementById('posY').value = Math.round(shape.y);
+        if (shape.width !== undefined) document.getElementById('width').value = Math.round(shape.width);
+        if (shape.height !== undefined) document.getElementById('height').value = Math.round(shape.height);
+      }
     }
 
     // Eyedropper Tool
@@ -1464,14 +1809,15 @@
       }
     }
 
-    function rgbToHex(r, g, b) {
-      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-    }
+    // rgbToHex is now imported from js/utils/color.js
+    // Using window.rgbToHex for backward compatibility
 
     // Selection
     function findShapeAt(x, y) {
       for (let i = state.shapes.length - 1; i >= 0; i--) {
         const shape = state.shapes[i];
+        if (shape.visible === false) continue;
+        
         if (shape.type === 'text') {
           if (x >= shape.x && x <= shape.x + 100 && y >= shape.y - 20 && y <= shape.y) {
             return shape;
@@ -1480,6 +1826,16 @@
           // Simple point-in-path check
           for (let p of shape.points || []) {
             if (Math.abs(p.x - x) < 5 && Math.abs(p.y - y) < 5) return shape;
+          }
+        } else if (shape.type === 'hotspot' || shape.type === 'avatar') {
+          // Circular shapes
+          const centerX = shape.x + (shape.width || 0) / 2;
+          const centerY = shape.y + (shape.height || 0) / 2;
+          const radius = (shape.width || 0) / 2;
+          const dx = x - centerX;
+          const dy = y - centerY;
+          if (dx * dx + dy * dy <= radius * radius) {
+            return shape;
           }
         } else if (x >= shape.x && x <= shape.x + (shape.width || 0) &&
                    y >= shape.y && y <= shape.y + (shape.height || 0)) {
@@ -1505,7 +1861,13 @@
 
     // Properties Panel
     function updatePropertiesPanel(shape) {
+      // Hide text formatting section by default
+      document.getElementById('textFormatSection').style.display = 'none';
+      document.getElementById('gradientControls').style.display = 'none';
+      document.getElementById('fillColorControl').style.display = 'block';
+      
       if (!shape) {
+        document.getElementById('fillType').value = 'solid';
         document.getElementById('fillColor').value = '#4a9eff';
         document.getElementById('strokeColor').value = '#000000';
         document.getElementById('strokeWidth').value = 2;
@@ -1515,10 +1877,34 @@
         document.getElementById('width').value = 100;
         document.getElementById('height').value = 100;
         document.getElementById('rotation').value = 0;
+        document.getElementById('shadow').checked = false;
+        document.getElementById('blur').value = 0;
+        document.getElementById('blurValue').textContent = '0px';
         return;
       }
 
-      if (shape.fill) document.getElementById('fillColor').value = shape.fill;
+      // Show text formatting for text shapes
+      if (shape.type === 'text') {
+        document.getElementById('textFormatSection').style.display = 'block';
+        if (shape.fontSize !== undefined) document.getElementById('fontSize').value = shape.fontSize;
+        if (shape.fontWeight !== undefined) document.getElementById('fontWeight').value = shape.fontWeight;
+        if (shape.fontStyle !== undefined) document.getElementById('fontStyle').value = shape.fontStyle;
+        if (shape.textAlign !== undefined) document.getElementById('textAlign').value = shape.textAlign;
+      }
+
+      // Handle fill type (gradient or solid)
+      if (shape.fillType === 'gradient') {
+        document.getElementById('fillType').value = 'gradient';
+        document.getElementById('fillColorControl').style.display = 'none';
+        document.getElementById('gradientControls').style.display = 'block';
+        if (shape.gradientStart) document.getElementById('gradientStart').value = shape.gradientStart;
+        if (shape.gradientEnd) document.getElementById('gradientEnd').value = shape.gradientEnd;
+        if (shape.gradientDirection) document.getElementById('gradientDirection').value = shape.gradientDirection;
+      } else {
+        document.getElementById('fillType').value = 'solid';
+        if (shape.fill) document.getElementById('fillColor').value = shape.fill;
+      }
+
       if (shape.stroke) document.getElementById('strokeColor').value = shape.stroke;
       if (shape.strokeWidth !== undefined) document.getElementById('strokeWidth').value = shape.strokeWidth;
       if (shape.opacity !== undefined) document.getElementById('opacity').value = shape.opacity;
@@ -1527,12 +1913,86 @@
       if (shape.width !== undefined) document.getElementById('width').value = Math.round(shape.width);
       if (shape.height !== undefined) document.getElementById('height').value = Math.round(shape.height);
       if (shape.rotation !== undefined) document.getElementById('rotation').value = shape.rotation;
+      if (shape.shadow !== undefined) document.getElementById('shadow').checked = shape.shadow;
+      if (shape.blur !== undefined) {
+        document.getElementById('blur').value = shape.blur;
+        document.getElementById('blurValue').textContent = shape.blur + 'px';
+      }
     }
 
     // Property Change Handlers
+    document.getElementById('fillType').addEventListener('change', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.fillType = e.target.value;
+        if (e.target.value === 'gradient') {
+          document.getElementById('fillColorControl').style.display = 'none';
+          document.getElementById('gradientControls').style.display = 'block';
+          if (!state.selectedShape.gradientStart) {
+            state.selectedShape.gradientStart = state.selectedShape.fill || '#4a9eff';
+            state.selectedShape.gradientEnd = '#3a8eef';
+            state.selectedShape.gradientDirection = 'horizontal';
+          }
+        } else {
+          document.getElementById('fillColorControl').style.display = 'block';
+          document.getElementById('gradientControls').style.display = 'none';
+        }
+        redraw();
+      }
+    });
+
     document.getElementById('fillColor').addEventListener('change', (e) => {
       if (state.selectedShape) {
         state.selectedShape.fill = e.target.value;
+        redraw();
+      }
+    });
+
+    document.getElementById('gradientStart').addEventListener('change', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.gradientStart = e.target.value;
+        redraw();
+      }
+    });
+
+    document.getElementById('gradientEnd').addEventListener('change', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.gradientEnd = e.target.value;
+        redraw();
+      }
+    });
+
+    document.getElementById('gradientDirection').addEventListener('change', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.gradientDirection = e.target.value;
+        redraw();
+      }
+    });
+
+    // Text formatting handlers
+    document.getElementById('fontSize').addEventListener('change', (e) => {
+      if (state.selectedShape && state.selectedShape.type === 'text') {
+        state.selectedShape.fontSize = parseInt(e.target.value);
+        redraw();
+      }
+    });
+
+    document.getElementById('fontWeight').addEventListener('change', (e) => {
+      if (state.selectedShape && state.selectedShape.type === 'text') {
+        state.selectedShape.fontWeight = e.target.value;
+        redraw();
+      }
+    });
+
+    document.getElementById('fontStyle').addEventListener('change', (e) => {
+      if (state.selectedShape && state.selectedShape.type === 'text') {
+        state.selectedShape.fontStyle = e.target.value;
+        redraw();
+      }
+    });
+
+    document.getElementById('textAlign').addEventListener('change', (e) => {
+      if (state.selectedShape && state.selectedShape.type === 'text') {
+        state.selectedShape.textAlign = e.target.value;
         redraw();
       }
     });
@@ -1596,25 +2056,68 @@
       }
     });
 
+    // Effects handlers
+    document.getElementById('shadow').addEventListener('change', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.shadow = e.target.checked;
+        if (state.selectedShape.shadow) {
+          state.selectedShape.shadowColor = 'rgba(0, 0, 0, 0.3)';
+          state.selectedShape.shadowBlur = 10;
+          state.selectedShape.shadowOffsetX = 2;
+          state.selectedShape.shadowOffsetY = 2;
+        }
+        redraw();
+      }
+    });
+
+    document.getElementById('blur').addEventListener('input', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.blur = parseFloat(e.target.value);
+        document.getElementById('blurValue').textContent = e.target.value + 'px';
+        redraw();
+      }
+    });
+
     // Layers Panel
     function updateLayersList() {
       const list = document.getElementById('layersList');
       list.innerHTML = '';
       state.shapes.slice().reverse().forEach(shape => {
         const li = document.createElement('li');
-        li.className = 'layer-item' + (state.selectedShape === shape ? ' selected' : '');
+        const isSelected = state.selectedShape === shape || state.selectedShapes.includes(shape);
+        li.className = 'layer-item' + (isSelected ? ' selected' : '');
         li.innerHTML = `
           <div class="layer-visibility ${shape.visible !== false ? 'visible' : ''}" 
                onclick="event.stopPropagation(); toggleLayerVisibility(${shape.id})"></div>
-          <span onclick="selectShapeById(${shape.id})">${shape.type} (${shape.id})</span>
+          <span onclick="selectShapeById(${shape.id}, event)">${shape.type} (${shape.id})</span>
         `;
         list.appendChild(li);
       });
     }
 
-    window.selectShapeById = (id) => {
+    window.selectShapeById = (id, event) => {
       const shape = state.shapes.find(s => s.id === id);
-      if (shape) selectShape(shape);
+      if (shape) {
+        if (event && (event.shiftKey || event.metaKey || event.ctrlKey)) {
+          // Multi-select
+          if (state.selectedShapes.includes(shape)) {
+            state.selectedShapes = state.selectedShapes.filter(s => s !== shape);
+            if (state.selectedShapes.length === 0) {
+              state.selectedShape = null;
+            } else {
+              state.selectedShape = state.selectedShapes[0];
+            }
+          } else {
+            state.selectedShapes.push(shape);
+            state.selectedShape = shape;
+          }
+          updateLayersList();
+          redraw();
+        } else {
+          selectShape(shape);
+          state.selectedShapes = [shape];
+        }
+      }
     };
 
     window.toggleLayerVisibility = (id) => {
@@ -1634,9 +2137,120 @@
         if (state.selectedShape === shape) {
           state.selectedShape = null;
         }
+        state.selectedShapes = state.selectedShapes.filter(s => s !== shape);
         updateLayersList();
         redraw();
       }
+    }
+
+    function deleteSelectedShapes() {
+      saveState();
+      const shapesToDelete = state.selectedShapes.length > 0 ? state.selectedShapes : (state.selectedShape ? [state.selectedShape] : []);
+      shapesToDelete.forEach(shape => {
+        const index = state.shapes.indexOf(shape);
+        if (index > -1) {
+          state.shapes.splice(index, 1);
+        }
+      });
+      state.selectedShape = null;
+      state.selectedShapes = [];
+      updateLayersList();
+      redraw();
+    }
+
+    function copyShapes() {
+      const shapesToCopy = state.selectedShapes.length > 0 ? state.selectedShapes : (state.selectedShape ? [state.selectedShape] : []);
+      if (shapesToCopy.length > 0) {
+        state.clipboard = shapesToCopy.map(shape => JSON.parse(JSON.stringify(shape)));
+        updateStatus(`Copied ${shapesToCopy.length} shape(s)`);
+      }
+    }
+
+    function pasteShapes() {
+      if (state.clipboard.length === 0) return;
+      
+      saveState();
+      const offset = 20; // Offset pasted shapes
+      const pastedShapes = [];
+      
+      state.clipboard.forEach(clipboardShape => {
+        const newShape = JSON.parse(JSON.stringify(clipboardShape));
+        newShape.id = Date.now() + Math.random();
+        newShape.x = (newShape.x || 0) + offset;
+        newShape.y = (newShape.y || 0) + offset;
+        state.shapes.push(newShape);
+        pastedShapes.push(newShape);
+      });
+      
+      if (pastedShapes.length > 0) {
+        state.selectedShapes = pastedShapes;
+        state.selectedShape = pastedShapes[0];
+        updateLayersList();
+        redraw();
+        updateStatus(`Pasted ${pastedShapes.length} shape(s)`);
+      }
+    }
+
+    function duplicateShapes() {
+      const shapesToDuplicate = state.selectedShapes.length > 0 ? state.selectedShapes : (state.selectedShape ? [state.selectedShape] : []);
+      if (shapesToDuplicate.length === 0) return;
+      
+      saveState();
+      const offset = 20;
+      const duplicatedShapes = [];
+      
+      shapesToDuplicate.forEach(shape => {
+        const newShape = JSON.parse(JSON.stringify(shape));
+        newShape.id = Date.now() + Math.random();
+        newShape.x = (newShape.x || 0) + offset;
+        newShape.y = (newShape.y || 0) + offset;
+        state.shapes.push(newShape);
+        duplicatedShapes.push(newShape);
+      });
+      
+      if (duplicatedShapes.length > 0) {
+        state.selectedShapes = duplicatedShapes;
+        state.selectedShape = duplicatedShapes[0];
+        updateLayersList();
+        redraw();
+        updateStatus(`Duplicated ${duplicatedShapes.length} shape(s)`);
+      }
+    }
+
+    function groupShapes() {
+      if (state.selectedShapes.length < 2) return;
+      
+      saveState();
+      const groupId = 'group_' + Date.now();
+      const minX = Math.min(...state.selectedShapes.map(s => s.x));
+      const minY = Math.min(...state.selectedShapes.map(s => s.y));
+      
+      state.selectedShapes.forEach(shape => {
+        shape._group = groupId;
+        // Store relative position
+        shape._groupOffsetX = shape.x - minX;
+        shape._groupOffsetY = shape.y - minY;
+      });
+      
+      updateStatus(`Grouped ${state.selectedShapes.length} shapes`);
+      redraw();
+    }
+
+    function ungroupShapes() {
+      if (!state.selectedShape || !state.selectedShape._group) return;
+      
+      saveState();
+      const groupId = state.selectedShape._group;
+      const groupedShapes = state.shapes.filter(s => s._group === groupId);
+      
+      groupedShapes.forEach(shape => {
+        delete shape._group;
+        delete shape._groupOffsetX;
+        delete shape._groupOffsetY;
+      });
+      
+      updateStatus(`Ungrouped ${groupedShapes.length} shapes`);
+      redraw();
     }
 
     // Status Bar
@@ -2392,6 +3006,11 @@
     }
     
     init();
+  </script>
+  <script type="module">
+    // Utility modules are available but not yet integrated
+    // This is a placeholder for future full modularization
+    // Current implementation maintains backward compatibility
   </script>
 </body>
 </html>

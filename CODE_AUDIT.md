@@ -45,43 +45,51 @@
     - Component creation and instantiation
     - Status: Complete
 
+11. **Eyedropper (I)** - Lines 890-891, 922-924, 1422-1469
+    - Color sampling from canvas
+    - Preview on hover, apply on click
+    - Status: Complete
+
+12. **Scale (K)** - Lines 892-907, 927-958, 987-991, 1393-1417
+    - Uniform scaling with visual handles
+    - Scale from center point
+    - Status: Complete
+
 ### Partially Implemented Tools ⚠️
 
 **None** - Tools are either fully implemented or completely missing.
 
 ### Missing Tool Implementations ❌
 
-1. **GUI (B/D/F/Y/J/W)** - Button exists (line 505), no handler
+1. **GUI (B/D/F/Y/J/W)** - Button exists (line 513), no handler
    - Status: Not implemented
-   - Needs: Handler in handleMouseDown, UI element library
+   - Needs: Handler in handleMouseDown, UI element library (buttons, inputs, etc.)
+   - Shortcuts: B/D/F/Y/J/W for different UI elements
 
-2. **Icon (X)** - Button exists (line 506), no handler
+2. **Icon (X)** - Button exists (line 514), no handler
    - Status: Not implemented
    - Needs: Handler in handleMouseDown, icon insertion from asset library
+   - Should use existing asset library
 
-3. **Scale (K)** - Button exists (line 508), no handler
-   - Status: Not implemented
-   - Needs: Handler in handleMouseDown, scaling UI with handles
-
-4. **Eyedropper (I)** - Button exists (line 509), no handler
-   - Status: Not implemented
-   - Needs: Handler in handleMouseDown, color sampling from canvas
-
-5. **Hotspot (H)** - Button exists (line 511), no handler
+3. **Hotspot (H)** - Button exists (line 519), no handler
    - Status: Not implemented
    - Needs: Handler in handleMouseDown, hotspot creation system
+   - Interactive hotspots for prototyping
 
-6. **Slice (E)** - Button exists (line 512), no handler
+4. **Slice (E)** - Button exists (line 520), no handler
    - Status: Not implemented
    - Needs: Handler in handleMouseDown, export region selection
+   - Should create exportable regions
 
-7. **Avatar (Q)** - Button exists (line 513), no handler
+5. **Avatar (Q)** - Button exists (line 521), no handler
    - Status: Not implemented
    - Needs: Handler in handleMouseDown, circular image insertion
+   - Should create circular image shapes
 
-8. **Rotate Copies (⌘⇧B)** - Button exists (line 515), no handler
+6. **Rotate Copies (⌘⇧B)** - Button exists (line 523), no handler
    - Status: Not implemented
    - Needs: Handler, circular array creation
+   - Should create rotated copies in a circle
 
 ## Code Patterns
 

@@ -11,6 +11,13 @@ A fully offline, all-in-one HTML design tool inspired by Lunacy, featuring vecto
 - **Comments**: Visual annotations on canvas with resolve/unresolve
 - **Sketch File Support**: Import and export .sketch files
 - **Asset Library**: Built-in library with 70+ emoji assets
+- **Transform Handles**: Resize, rotate, and manipulate shapes with visual handles
+- **Multi-Select**: Select multiple shapes with Shift/Cmd+Click or selection box
+- **Copy/Paste/Duplicate**: Standard clipboard operations (Cmd/C/Cmd/V/Cmd+D)
+- **Group/Ungroup**: Organize shapes into groups (Cmd/G)
+- **Gradient Fills**: Apply linear gradients (horizontal, vertical, diagonal)
+- **Text Formatting**: Bold, italic, alignment, and font size controls
+- **Effects**: Shadow and blur effects for shapes
 - **Offline**: Works completely offline (except JSZip CDN for Sketch support)
 - **Auto-save**: Saves to localStorage every 30 seconds
 
@@ -34,7 +41,12 @@ Simply open `index.html` in your browser. No build step required!
 - `Space` - Hand tool (pan)
 - `Ctrl/Cmd + Z` - Undo
 - `Ctrl/Cmd + Shift + Z` - Redo
-- `Delete` / `Backspace` - Delete selected shape
+- `Ctrl/Cmd + C` - Copy selected shape(s)
+- `Ctrl/Cmd + V` - Paste shape(s)
+- `Ctrl/Cmd + D` - Duplicate selected shape(s)
+- `Ctrl/Cmd + G` - Group selected shapes
+- `Ctrl/Cmd + Shift + G` - Ungroup selected shapes
+- `Delete` / `Backspace` - Delete selected shape(s)
 - `Ctrl/Cmd + Scroll` - Zoom
 
 ## File Format
