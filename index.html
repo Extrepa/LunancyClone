@@ -2442,7 +2442,14 @@
     state.components = [];
     state.componentInstances = new Map();
 
+    // Use module if available, otherwise fallback
     function createComponent(shapes) {
+      if (window.createComponentModule) {
+        const component = window.createComponentModule(shapes, deepClone, state.components);
+        updateComponentsList();
+        return component;
+      }
+      // Fallback implementation
       const component = {
         id: 'comp_' + Date.now(),
         name: prompt('Component name:', 'Component ' + (state.components.length + 1)) || 'Component',
@@ -2599,7 +2606,13 @@
       return comment;
     }
 
+    // Use module if available, otherwise fallback
     function updateCommentsList() {
+      if (window.updateCommentsListModule) {
+        window.updateCommentsListModule(state.comments, redrawComments);
+        return;
+      }
+      // Fallback implementation
       const list = document.getElementById('commentsList');
       list.innerHTML = '';
       state.comments.forEach(comment => {
@@ -2666,7 +2679,13 @@
       });
     }
 
+    // Use module if available, otherwise fallback
     function showCommentPopup(comment, x, y) {
+      if (window.showCommentPopupModule) {
+        window.showCommentPopupModule(comment, x, y, state.comments, canvas);
+        return;
+      }
+      // Fallback implementation
       // Remove existing popup
       document.querySelectorAll('.comment-popup').forEach(el => el.remove());
 
@@ -2811,37 +2830,50 @@
       redraw();
     }
 
-    document.querySelectorAll('.layout-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.autoLayout.mode = btn.dataset.layout;
+    // Initialize auto-layout controls - Use module if available, otherwise fallback
+    if (window.initAutoLayoutControlsModule) {
+      window.initAutoLayoutControlsModule(
+        state.autoLayout,
+        () => {
+          if (state.selectedShape && state.selectedShape.type === 'frame') {
+            applyAutoLayout(state.selectedShape);
+          }
+        }
+      );
+    } else {
+      // Fallback implementation
+      document.querySelectorAll('.layout-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.autoLayout.mode = btn.dataset.layout;
+          if (state.selectedShape && state.selectedShape.type === 'frame') {
+            applyAutoLayout(state.selectedShape);
+          }
+        });
+      });
+
+      document.getElementById('layoutPadding').addEventListener('change', (e) => {
+        state.autoLayout.padding = parseInt(e.target.value) || 0;
         if (state.selectedShape && state.selectedShape.type === 'frame') {
           applyAutoLayout(state.selectedShape);
         }
       });
-    });
 
-    document.getElementById('layoutPadding').addEventListener('change', (e) => {
-      state.autoLayout.padding = parseInt(e.target.value) || 0;
-      if (state.selectedShape && state.selectedShape.type === 'frame') {
-        applyAutoLayout(state.selectedShape);
-      }
-    });
+      document.getElementById('layoutGap').addEventListener('change', (e) => {
+        state.autoLayout.gap = parseInt(e.target.value) || 0;
+        if (state.selectedShape && state.selectedShape.type === 'frame') {
+          applyAutoLayout(state.selectedShape);
+        }
+      });
 
-    document.getElementById('layoutGap').addEventListener('change', (e) => {
-      state.autoLayout.gap = parseInt(e.target.value) || 0;
-      if (state.selectedShape && state.selectedShape.type === 'frame') {
-        applyAutoLayout(state.selectedShape);
-      }
-    });
-
-    document.getElementById('autoResize').addEventListener('change', (e) => {
-      state.autoLayout.autoResize = e.target.checked;
-      if (state.selectedShape && state.selectedShape.type === 'frame') {
-        applyAutoLayout(state.selectedShape);
-      }
-    });
+      document.getElementById('autoResize').addEventListener('change', (e) => {
+        state.autoLayout.autoResize = e.target.checked;
+        if (state.selectedShape && state.selectedShape.type === 'frame') {
+          applyAutoLayout(state.selectedShape);
+        }
+      });
+    }
 
     // Enhanced Vector Editing with Bézier Curves
     state.editingPath = null;
