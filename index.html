@@ -486,6 +486,27 @@
         if (state.selectedShape || state.selectedShapes.length > 0) {
           deleteSelectedShapes();
         }
+      } else if (key === '?' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        // Show keyboard help (Cmd+?)
+        if (window.showKeyboardHelpModule) {
+          window.showKeyboardHelpModule();
+        }
+      } else if ((key === '+' || key === '=') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        // Zoom in
+        state.zoom = Math.min(state.zoom * 1.2, 5);
+        redraw();
+      } else if (key === '-' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        // Zoom out
+        state.zoom = Math.max(state.zoom / 1.2, 0.1);
+        redraw();
+      } else if (key === '0' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        // Reset zoom
+        state.zoom = 1;
+        redraw();
       }
     });
 
@@ -501,6 +522,94 @@
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('mouseleave', handleMouseUp);
+    canvas.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const pos = getCanvasPos(e);
+      const clickedShape = findShapeAt(pos.x, pos.y, state.shapes);
+      
+      if (clickedShape && (clickedShape === state.selectedShape || state.selectedShapes.includes(clickedShape))) {
+        // Show context menu for selected shape
+        if (window.showShapeContextMenuModule) {
+          window.showShapeContextMenuModule(clickedShape, e.clientX, e.clientY, (action, shape) => {
+            handleContextMenuAction(action, shape);
+          });
+        }
+      } else {
+        // Show context menu for canvas
+        if (window.showCanvasContextMenuModule) {
+          window.showCanvasContextMenuModule(e.clientX, e.clientY, (action) => {
+            handleContextMenuAction(action, null);
+          });
+        }
+      }
+    });
+    
+    function handleContextMenuAction(action, shape) {
+      switch (action) {
+        case 'copy':
+          if (shape || state.selectedShape) {
+            copyShapes();
+          }
+          break;
+        case 'paste':
+          pasteShapes();
+          break;
+        case 'duplicate':
+          if (shape || state.selectedShape) {
+            duplicateShapes();
+          }
+          break;
+        case 'delete':
+          if (shape || state.selectedShape) {
+            deleteSelectedShapes();
+          }
+          break;
+        case 'bringToFront':
+          if (shape) {
+            const index = state.shapes.indexOf(shape);
+            if (index > -1) {
+              state.shapes.splice(index, 1);
+              state.shapes.push(shape);
+              updateLayersList();
+              redraw();
+            }
+          }
+          break;
+        case 'sendToBack':
+          if (shape) {
+            const index = state.shapes.indexOf(shape);
+            if (index > -1) {
+              state.shapes.splice(index, 1);
+              state.shapes.unshift(shape);
+              updateLayersList();
+              redraw();
+            }
+          }
+          break;
+        case 'group':
+          if (state.selectedShapes.length > 1) {
+            groupShapes();
+          }
+          break;
+        case 'ungroup':
+          if (shape && shape._group) {
+            ungroupShapes();
+          }
+          break;
+        case 'zoomIn':
+          state.zoom = Math.min(state.zoom * 1.2, 5);
+          redraw();
+          break;
+        case 'zoomOut':
+          state.zoom = Math.max(state.zoom / 1.2, 0.1);
+          redraw();
+          break;
+        case 'resetZoom':
+          state.zoom = 1;
+          redraw();
+          break;
+      }
+    }
 
     // Coordinate conversion - Use module if available, otherwise fallback
     function getCanvasPos(e) {
@@ -1521,7 +1630,29 @@
       updateStatus('Slice created');
     }
 
+    // Throttled redraw using requestAnimationFrame for smooth 60fps
+    let redrawRafId = null;
+    let pendingRedraw = false;
+    
     function redraw() {
+      if (redrawRafId !== null) {
+        pendingRedraw = true;
+        return;
+      }
+      
+      pendingRedraw = false;
+      redrawRafId = requestAnimationFrame(() => {
+        redrawRafId = null;
+        performRedraw();
+        
+        // If redraw was called again during this frame, schedule another
+        if (pendingRedraw) {
+          redraw();
+        }
+      });
+    }
+    
+    function performRedraw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
       ctx.scale(state.zoom, state.zoom);
@@ -1563,6 +1694,12 @@
       }
       
       ctx.restore();
+      
+      // Update zoom level display
+      const zoomLevel = document.getElementById('zoom-level');
+      if (zoomLevel) {
+        zoomLevel.textContent = Math.round(state.zoom * 100) + '%';
+      }
     }
 
     // Fallback grid drawing function
@@ -3270,6 +3407,7 @@
     import { createComponent as createComponentModule, createComponentInstance as createComponentInstanceModule, detachComponentInstance as detachComponentInstanceModule, updateComponentsList as updateComponentsListModule } from './js/features/components.js';
     import { addComment as addCommentModule, updateCommentsList as updateCommentsListModule, redrawComments as redrawCommentsModule, showCommentPopup as showCommentPopupModule } from './js/features/comments.js';
     import { applyAutoLayout as applyAutoLayoutModule, initAutoLayoutControls as initAutoLayoutControlsModule } from './js/features/auto-layout.js';
+    import { createVirtualList } from './js/core/virtual-list.js';
     
     // Make utilities available globally for backward compatibility
     window.rgbToHex = rgbToHex;
@@ -3282,6 +3420,9 @@
     window.loadStateUtil = loadStateUtil;
     window.setupAutoSave = setupAutoSave;
     window.HistoryManager = HistoryManager;
+    window.debounceUtil = debounce;
+    window.throttleUtil = throttle;
+    window.rafThrottleUtil = rafThrottle;
     
     // Make shape modules available globally
     window.drawShapeModule = drawShapeModule;
@@ -3304,6 +3445,12 @@
     window.showCommentPopupModule = showCommentPopupModule;
     window.applyAutoLayoutModule = applyAutoLayoutModule;
     window.initAutoLayoutControlsModule = initAutoLayoutControlsModule;
+    window.createVirtualList = createVirtualList;
+    window.showShapeContextMenuModule = showShapeContextMenuModule;
+    window.showCanvasContextMenuModule = showCanvasContextMenuModule;
+    window.hideContextMenuModule = hideContextMenuModule;
+    window.showKeyboardHelpModule = showKeyboardHelpModule;
+    window.hideKeyboardHelpModule = hideKeyboardHelpModule;
     
     // Note: window.redraw, window.canvas, window.ctx, and window.state are
     // initialized by the main script (lines 266-267 and 1592-1593) and should
