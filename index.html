@@ -2454,7 +2454,23 @@
       return component;
     }
 
+    // Use module if available, otherwise fallback
     function createComponentInstance(componentId, x, y) {
+      if (window.createComponentInstanceModule) {
+        const instance = window.createComponentInstanceModule(
+          componentId, x, y, 
+          state.components, 
+          state.componentInstances, 
+          state.shapes, 
+          deepClone
+        );
+        if (instance) {
+          updateLayersList();
+          redraw();
+        }
+        return instance;
+      }
+      // Fallback implementation
       const component = state.components.find(c => c.id === componentId);
       if (!component) return;
 
@@ -2481,7 +2497,15 @@
       return instance;
     }
 
+    // Use module if available, otherwise fallback
     function detachComponentInstance(shape) {
+      if (window.detachComponentInstanceModule) {
+        window.detachComponentInstanceModule(shape, state.componentInstances, state.shapes);
+        updateLayersList();
+        redraw();
+        return;
+      }
+      // Fallback implementation
       if (shape._instanceId) {
         const instance = state.componentInstances.get(shape._instanceId);
         if (instance) {
@@ -2499,7 +2523,17 @@
       }
     }
 
+    // Use module if available, otherwise fallback
     function updateComponentsList() {
+      if (window.updateComponentsListModule) {
+        window.updateComponentsListModule(
+          state.components,
+          (componentId, x, y) => createComponentInstance(componentId, x, y),
+          updateComponentsList
+        );
+        return;
+      }
+      // Fallback implementation
       const list = document.getElementById('componentsList');
       list.innerHTML = '';
       state.components.forEach(comp => {
@@ -2542,7 +2576,15 @@
     // Comments System
     state.comments = [];
 
+    // Use module if available, otherwise fallback
     function addComment(x, y, text) {
+      if (window.addCommentModule) {
+        window.addCommentModule(x, y, text, state.comments);
+        updateCommentsList();
+        redrawComments();
+        return state.comments[state.comments.length - 1];
+      }
+      // Fallback implementation
       const comment = {
         id: 'comment_' + Date.now(),
         x: x,
@@ -2589,7 +2631,18 @@
       }
     };
 
+    // Use module if available, otherwise fallback
     function redrawComments() {
+      if (window.redrawCommentsModule) {
+        window.redrawCommentsModule(
+          state.comments, 
+          canvas, 
+          state, 
+          (comment, x, y) => showCommentPopup(comment, x, y)
+        );
+        return;
+      }
+      // Fallback implementation
       // Remove existing comment markers
       document.querySelectorAll('.comment-marker, .comment-popup').forEach(el => el.remove());
 
@@ -2699,7 +2752,18 @@
       autoResize: false
     };
 
+    // Use module if available, otherwise fallback
     function applyAutoLayout(containerShape) {
+      if (window.applyAutoLayoutModule) {
+        window.applyAutoLayoutModule(
+          containerShape, 
+          state.shapes, 
+          state.autoLayout, 
+          redraw
+        );
+        return;
+      }
+      // Fallback implementation
       if (!containerShape || state.autoLayout.mode === 'none') return;
 
       const children = state.shapes.filter(s => 
@@ -3170,6 +3234,11 @@
     import { drawShape as drawShapeModule, drawGrid as drawGridModule } from './js/shapes/renderer.js';
     import { drawSelection as drawSelectionModule, getTransformHandles as getTransformHandlesModule, getHandleAt as getHandleAtModule, findShapeAt as findShapeAtModule, applyTransform as applyTransformModule, drawSelectionBox as drawSelectionBoxModule } from './js/shapes/selection.js';
     
+    // Import features modules
+    import { createComponent as createComponentModule, createComponentInstance as createComponentInstanceModule, detachComponentInstance as detachComponentInstanceModule, updateComponentsList as updateComponentsListModule } from './js/features/components.js';
+    import { addComment as addCommentModule, updateCommentsList as updateCommentsListModule, redrawComments as redrawCommentsModule, showCommentPopup as showCommentPopupModule } from './js/features/comments.js';
+    import { applyAutoLayout as applyAutoLayoutModule, initAutoLayoutControls as initAutoLayoutControlsModule } from './js/features/auto-layout.js';
+    
     // Make utilities available globally for backward compatibility
     window.rgbToHex = rgbToHex;
     window.hexToRgb = hexToRgb;
@@ -3192,13 +3261,25 @@
     window.applyTransformModule = applyTransformModule;
     window.drawSelectionBoxModule = drawSelectionBoxModule;
     
+    // Make features modules available globally
+    window.createComponentModule = createComponentModule;
+    window.createComponentInstanceModule = createComponentInstanceModule;
+    window.detachComponentInstanceModule = detachComponentInstanceModule;
+    window.updateComponentsListModule = updateComponentsListModule;
+    window.addCommentModule = addCommentModule;
+    window.updateCommentsListModule = updateCommentsListModule;
+    window.redrawCommentsModule = redrawCommentsModule;
+    window.showCommentPopupModule = showCommentPopupModule;
+    window.applyAutoLayoutModule = applyAutoLayoutModule;
+    window.initAutoLayoutControlsModule = initAutoLayoutControlsModule;
+    
     // Store redraw function globally so modules can access it
     window.redraw = null;
     window.canvas = null;
     window.ctx = null;
     window.state = null;
     
-    console.log('Module utilities and shapes loaded');
+    console.log('Module utilities, shapes, and features loaded');
   </script>
 </body>
 </html>
