@@ -2288,9 +2288,17 @@
       });
     });
 
-    // Undo/Redo (simplified)
+    // Undo/Redo - Use HistoryManager if available, otherwise fallback
     let history = [];
     let historyIndex = -1;
+    let historyManager = null;
+    
+    // Initialize HistoryManager if available (will be set after module loads)
+    setTimeout(() => {
+      if (window.HistoryManager) {
+        historyManager = new window.HistoryManager(50);
+      }
+    }, 100);
 
     // Use module function if available, otherwise fallback
     function deepClone(data) {
@@ -2309,30 +2317,55 @@
     }
 
     function saveState() {
-      history = history.slice(0, historyIndex + 1);
-      history.push(deepClone(state.shapes));
-      historyIndex++;
-      if (history.length > 50) {
-        history.shift();
-        historyIndex--;
+      if (historyManager) {
+        historyManager.saveState(state.shapes, deepClone);
+      } else {
+        // Fallback to original implementation
+        history = history.slice(0, historyIndex + 1);
+        history.push(deepClone(state.shapes));
+        historyIndex++;
+        if (history.length > 50) {
+          history.shift();
+          historyIndex--;
+        }
       }
     }
 
     function undo() {
-      if (historyIndex > 0) {
-        historyIndex--;
-        state.shapes = deepClone(history[historyIndex]);
-        updateLayersList();
-        redraw();
+      if (historyManager) {
+        const previousState = historyManager.undo();
+        if (previousState) {
+          state.shapes = deepClone(previousState);
+          updateLayersList();
+          redraw();
+        }
+      } else {
+        // Fallback to original implementation
+        if (historyIndex > 0) {
+          historyIndex--;
+          state.shapes = deepClone(history[historyIndex]);
+          updateLayersList();
+          redraw();
+        }
       }
     }
 
     function redo() {
-      if (historyIndex < history.length - 1) {
-        historyIndex++;
-        state.shapes = deepClone(history[historyIndex]);
-        updateLayersList();
-        redraw();
+      if (historyManager) {
+        const nextState = historyManager.redo();
+        if (nextState) {
+          state.shapes = deepClone(nextState);
+          updateLayersList();
+          redraw();
+        }
+      } else {
+        // Fallback to original implementation
+        if (historyIndex < history.length - 1) {
+          historyIndex++;
+          state.shapes = deepClone(history[historyIndex]);
+          updateLayersList();
+          redraw();
+        }
       }
     }
 
