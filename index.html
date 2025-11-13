@@ -1,0 +1,2397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design Tool - Lunacy Clone</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #1a1a1a;
+      color: #e0e0e0;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      width: 64px;
+      background: #252525;
+      border-right: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+      padding: 8px;
+      gap: 4px;
+      z-index: 100;
+    }
+
+    .tool-btn {
+      width: 48px;
+      height: 48px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      color: #e0e0e0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .tool-btn:hover {
+      background: #333;
+      border-color: #444;
+    }
+
+    .tool-btn.active {
+      background: #3a3a3a;
+      border-color: #555;
+      color: #4a9eff;
+    }
+
+    .tool-btn[data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 56px;
+      background: #2a2a2a;
+      color: #e0e0e0;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      z-index: 1000;
+      border: 1px solid #444;
+      pointer-events: none;
+    }
+
+    /* Canvas Area */
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      background: #2a2a2a;
+      overflow: hidden;
+    }
+
+    .canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      cursor: crosshair;
+    }
+
+    .canvas.select-mode {
+      cursor: default;
+    }
+
+    .canvas.draw-mode {
+      cursor: crosshair;
+    }
+
+    .canvas.text-mode {
+      cursor: text;
+    }
+
+    .canvas.eyedropper-mode {
+      cursor: crosshair;
+    }
+
+    .canvas.scale-mode {
+      cursor: crosshair;
+    }
+
+    /* Right Panel */
+    .right-panel {
+      width: 320px;
+      background: #252525;
+      border-left: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .panel-section {
+      padding: 16px;
+      border-bottom: 1px solid #333;
+    }
+
+    .panel-section h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #999;
+      margin-bottom: 12px;
+    }
+
+    .panel-control {
+      margin-bottom: 12px;
+    }
+
+    .panel-control label {
+      display: block;
+      font-size: 12px;
+      color: #ccc;
+      margin-bottom: 4px;
+    }
+
+    .panel-control input[type="text"],
+    .panel-control input[type="number"],
+    .panel-control select {
+      width: 100%;
+      padding: 6px 8px;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-size: 12px;
+    }
+
+    .panel-control input[type="range"] {
+      width: 100%;
+    }
+
+    .color-picker {
+      width: 100%;
+      height: 40px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* Layers Panel */
+    .layers-panel {
+      padding: 16px;
+      border-bottom: 1px solid #333;
+    }
+
+    .layers-list {
+      list-style: none;
+    }
+
+    .layer-item {
+      padding: 8px;
+      margin-bottom: 4px;
+      background: #1a1a1a;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .layer-item:hover {
+      background: #2a2a2a;
+    }
+
+    .layer-item.selected {
+      background: #3a3a3a;
+      border: 1px solid #4a9eff;
+    }
+
+    .layer-visibility {
+      width: 16px;
+      height: 16px;
+      border: 1px solid #555;
+      border-radius: 2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .layer-visibility.visible::after {
+      content: '👁';
+      font-size: 10px;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      height: 48px;
+      background: #1f1f1f;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+    }
+
+    .top-bar h1 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e0e0e0;
+    }
+
+    .top-bar-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      background: #3a3a3a;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .btn:hover {
+      background: #4a4a4a;
+      border-color: #666;
+    }
+
+    .btn-primary {
+      background: #4a9eff;
+      border-color: #4a9eff;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: #5aaeff;
+    }
+
+    /* Selection handles */
+    .selection-handle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #4a9eff;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      pointer-events: all;
+      cursor: nwse-resize;
+    }
+
+    .selection-box {
+      position: absolute;
+      border: 2px dashed #4a9eff;
+      pointer-events: none;
+    }
+
+    /* Shape tools submenu */
+    .shape-submenu {
+      position: absolute;
+      left: 64px;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 8px;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 200;
+    }
+
+    .shape-submenu.visible {
+      display: flex;
+    }
+
+    .shape-btn {
+      padding: 8px 12px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .shape-btn:hover {
+      background: #333;
+      border-color: #555;
+    }
+
+    /* Status bar */
+    .status-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 24px;
+      background: #1f1f1f;
+      border-top: 1px solid #333;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 11px;
+      color: #999;
+    }
+
+    /* Scrollbar styling */
+    .right-panel::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .right-panel::-webkit-scrollbar-track {
+      background: #1a1a1a;
+    }
+
+    .right-panel::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 4px;
+    }
+
+    .right-panel::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+
+    /* Component System */
+    .component-item {
+      padding: 8px;
+      margin-bottom: 4px;
+      background: #1a1a1a;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .component-item:hover {
+      background: #2a2a2a;
+    }
+
+    .component-badge {
+      background: #4a9eff;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+
+    /* Comments */
+    .comment-marker {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background: #ffa500;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+      font-weight: bold;
+      font-size: 12px;
+      z-index: 1000;
+    }
+
+    .comment-popup {
+      position: absolute;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 12px;
+      min-width: 200px;
+      max-width: 300px;
+      z-index: 1001;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .comment-popup textarea {
+      width: 100%;
+      min-height: 60px;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #e0e0e0;
+      padding: 8px;
+      font-size: 12px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    /* Asset Library */
+    .asset-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 8px 0;
+    }
+
+    .asset-item {
+      aspect-ratio: 1;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      transition: all 0.2s;
+    }
+
+    .asset-item:hover {
+      background: #2a2a2a;
+      border-color: #4a9eff;
+    }
+
+    /* Bézier Curve Handles */
+    .bezier-handle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #ffa500;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    .bezier-line {
+      stroke: #ffa500;
+      stroke-width: 1;
+      stroke-dasharray: 3,3;
+      pointer-events: none;
+    }
+
+    /* Auto Layout Controls */
+    .layout-controls {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .layout-btn {
+      padding: 4px 8px;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .layout-btn.active {
+      background: #4a9eff;
+      border-color: #4a9eff;
+    }
+
+    .layout-btn:hover {
+      background: #2a2a2a;
+    }
+  </style>
+</head>
+<body>
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button class="tool-btn active" data-tool="select" data-tooltip="Select (V)" title="Select tool">↖</button>
+    <button class="tool-btn" data-tool="frame" data-tooltip="Frame (A)" title="Frame tool">▢</button>
+    <div style="position: relative;">
+      <button class="tool-btn" data-tool="shape" data-tooltip="Shapes (R/L/O)" title="Shape tools">◇</button>
+      <div class="shape-submenu" id="shapeSubmenu">
+        <button class="shape-btn" data-shape="rect">Rectangle (R)</button>
+        <button class="shape-btn" data-shape="rounded">Rounded Rectangle (R, R)</button>
+        <button class="shape-btn" data-shape="line">Line (L)</button>
+        <button class="shape-btn" data-shape="arrow">Arrow (L, L)</button>
+        <button class="shape-btn" data-shape="oval">Oval (O)</button>
+        <button class="shape-btn" data-shape="triangle">Triangle (O, O)</button>
+        <button class="shape-btn" data-shape="polygon">Polygon (O, O, O)</button>
+        <button class="shape-btn" data-shape="star">Star (O, O, O, O)</button>
+      </div>
+    </div>
+    <button class="tool-btn" data-tool="text" data-tooltip="Text (T)" title="Text tool">T</button>
+    <button class="tool-btn" data-tool="pen" data-tooltip="Pen (P)" title="Pen tool">✎</button>
+    <button class="tool-btn" data-tool="pencil" data-tooltip="Pencil (P, P)" title="Pencil tool">✏</button>
+    <button class="tool-btn" data-tool="image" data-tooltip="Image (M)" title="Image tool">🖼</button>
+    <button class="tool-btn" data-tool="gui" data-tooltip="GUI (B/D/F/Y/J/W)" title="GUI tool">□</button>
+    <button class="tool-btn" data-tool="icon" data-tooltip="Icon (X)" title="Icon tool">★</button>
+    <button class="tool-btn" data-tool="comment" data-tooltip="Comment (C)" title="Comment tool">💬</button>
+    <button class="tool-btn" data-tool="scale" data-tooltip="Scale (K)" title="Scale tool">⇱</button>
+    <button class="tool-btn" data-tool="eyedropper" data-tooltip="Eyedropper (I)" title="Eyedropper tool">🔍</button>
+    <button class="tool-btn" data-tool="hand" data-tooltip="Hand (Space)" title="Hand tool">✋</button>
+    <button class="tool-btn" data-tool="hotspot" data-tooltip="Hotspot (H)" title="Hotspot tool">📍</button>
+    <button class="tool-btn" data-tool="slice" data-tooltip="Slice (E)" title="Slice tool">✂</button>
+    <button class="tool-btn" data-tool="avatar" data-tooltip="Avatar (Q)" title="Avatar tool">👤</button>
+    <button class="tool-btn" data-tool="component" data-tooltip="Component (S)" title="Component tool">🧩</button>
+    <button class="tool-btn" data-tool="rotate" data-tooltip="Rotate Copies (⌘⇧B)" title="Rotate copies tool">↻</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="canvas-container">
+    <div class="top-bar">
+      <h1>Design Tool</h1>
+      <div class="top-bar-actions">
+        <button class="btn" id="exportBtn">Export</button>
+        <button class="btn btn-primary" id="saveBtn">Save</button>
+      </div>
+    </div>
+    <canvas class="canvas select-mode" id="canvas"></canvas>
+    <div class="status-bar">
+      <span id="statusText">Ready</span>
+      <span style="margin-left: auto;" id="zoomText">100%</span>
+    </div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right-panel">
+    <div class="layers-panel">
+      <h3>Layers</h3>
+      <ul class="layers-list" id="layersList"></ul>
+    </div>
+    <div class="panel-section">
+      <h3>Properties</h3>
+      <div class="panel-control">
+        <label>Fill Color</label>
+        <input type="color" id="fillColor" class="color-picker" value="#4a9eff">
+      </div>
+      <div class="panel-control">
+        <label>Stroke Color</label>
+        <input type="color" id="strokeColor" class="color-picker" value="#000000">
+      </div>
+      <div class="panel-control">
+        <label>Stroke Width</label>
+        <input type="range" id="strokeWidth" min="0" max="20" value="2">
+        <span id="strokeWidthValue">2px</span>
+      </div>
+      <div class="panel-control">
+        <label>Opacity</label>
+        <input type="range" id="opacity" min="0" max="1" step="0.01" value="1">
+        <span id="opacityValue">100%</span>
+      </div>
+    </div>
+    <div class="panel-section">
+      <h3>Transform</h3>
+      <div class="panel-control">
+        <label>X</label>
+        <input type="number" id="posX" value="0">
+      </div>
+      <div class="panel-control">
+        <label>Y</label>
+        <input type="number" id="posY" value="0">
+      </div>
+      <div class="panel-control">
+        <label>Width</label>
+        <input type="number" id="width" value="100">
+      </div>
+      <div class="panel-control">
+        <label>Height</label>
+        <input type="number" id="height" value="100">
+      </div>
+      <div class="panel-control">
+        <label>Rotation</label>
+        <input type="range" id="rotation" min="0" max="360" value="0">
+        <span id="rotationValue">0°</span>
+      </div>
+    </div>
+    <div class="panel-section">
+      <h3>Effects</h3>
+      <div class="panel-control">
+        <label>Shadow</label>
+        <input type="checkbox" id="shadow">
+      </div>
+      <div class="panel-control">
+        <label>Blur</label>
+        <input type="range" id="blur" min="0" max="20" value="0">
+        <span id="blurValue">0px</span>
+      </div>
+    </div>
+    <div class="panel-section">
+      <h3>Auto Layout</h3>
+      <div class="panel-control">
+        <label>Layout Mode</label>
+        <div class="layout-controls">
+          <button class="layout-btn" data-layout="none">None</button>
+          <button class="layout-btn" data-layout="hstack">H-Stack</button>
+          <button class="layout-btn" data-layout="vstack">V-Stack</button>
+          <button class="layout-btn" data-layout="grid">Grid</button>
+        </div>
+      </div>
+      <div class="panel-control">
+        <label>Padding</label>
+        <input type="number" id="layoutPadding" value="8" min="0">
+      </div>
+      <div class="panel-control">
+        <label>Gap</label>
+        <input type="number" id="layoutGap" value="8" min="0">
+      </div>
+      <div class="panel-control">
+        <label>Auto Resize</label>
+        <input type="checkbox" id="autoResize">
+      </div>
+    </div>
+    <div class="panel-section">
+      <h3>Components</h3>
+      <div class="panel-control">
+        <button class="btn" id="createComponentBtn">Create Component</button>
+        <button class="btn" id="detachComponentBtn" style="margin-top: 8px;">Detach Instance</button>
+      </div>
+      <div id="componentsList" style="margin-top: 12px;"></div>
+    </div>
+    <div class="panel-section">
+      <h3>Asset Library</h3>
+      <div class="panel-control">
+        <input type="text" id="assetSearch" placeholder="Search assets..." style="width: 100%; margin-bottom: 8px;">
+      </div>
+      <div class="asset-grid" id="assetGrid">
+        <!-- Assets will be populated here -->
+      </div>
+    </div>
+    <div class="panel-section">
+      <h3>Comments</h3>
+      <div class="panel-control">
+        <button class="btn" id="addCommentBtn">Add Comment</button>
+      </div>
+      <div id="commentsList" style="margin-top: 12px;"></div>
+    </div>
+  </div>
+
+  <script>
+    // Application State
+    const state = {
+      currentTool: 'select',
+      shapes: [],
+      selectedShape: null,
+      isDrawing: false,
+      startX: 0,
+      startY: 0,
+      currentPath: [],
+      penMode: false,
+      pencilMode: false,
+      currentShape: 'rect',
+      zoom: 1,
+      panX: 0,
+      panY: 0,
+      isPanning: false,
+      lastPanX: 0,
+      lastPanY: 0,
+      scalingShape: null,
+      scaleStartX: 0,
+      scaleStartY: 0,
+      scaleCenterX: 0,
+      scaleCenterY: 0
+    };
+
+    // Canvas Setup
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight - 48 - 24; // Top bar + status bar
+      canvas.style.width = canvas.width + 'px';
+      canvas.style.height = canvas.height + 'px';
+      redraw();
+    }
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Tool Selection
+    const toolButtons = document.querySelectorAll('.tool-btn');
+    toolButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tool = btn.dataset.tool;
+        if (tool === 'shape') {
+          document.getElementById('shapeSubmenu').classList.toggle('visible');
+          return;
+        }
+        selectTool(tool);
+        document.getElementById('shapeSubmenu').classList.remove('visible');
+      });
+    });
+
+    // Shape submenu
+    document.querySelectorAll('.shape-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.currentShape = btn.dataset.shape;
+        selectTool('shape');
+        document.getElementById('shapeSubmenu').classList.remove('visible');
+      });
+    });
+
+    function selectTool(tool) {
+      state.currentTool = tool;
+      toolButtons.forEach(b => b.classList.remove('active'));
+      document.querySelector(`[data-tool="${tool}"]`)?.classList.add('active');
+      
+      // Update canvas cursor
+      canvas.className = 'canvas ' + tool + '-mode';
+      
+      // Reset drawing states
+      state.penMode = tool === 'pen';
+      state.pencilMode = tool === 'pencil';
+      state.currentPath = [];
+      
+      updateStatus(`Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`);
+    }
+
+    // Keyboard Shortcuts
+    const keyMap = {
+      'v': 'select',
+      'a': 'frame',
+      'r': () => {
+        if (state.currentTool === 'shape' && state.currentShape === 'rect') {
+          state.currentShape = 'rounded';
+        } else {
+          selectTool('shape');
+          state.currentShape = 'rect';
+        }
+      },
+      'l': () => {
+        if (state.currentTool === 'shape' && state.currentShape === 'line') {
+          state.currentShape = 'arrow';
+        } else {
+          selectTool('shape');
+          state.currentShape = 'line';
+        }
+      },
+      'o': () => {
+        const shapes = ['oval', 'triangle', 'polygon', 'star'];
+        const idx = shapes.indexOf(state.currentShape);
+        if (idx >= 0 && idx < shapes.length - 1) {
+          state.currentShape = shapes[idx + 1];
+        } else {
+          selectTool('shape');
+          state.currentShape = 'oval';
+        }
+      },
+      't': 'text',
+      'p': () => {
+        if (state.currentTool === 'pen') {
+          selectTool('pencil');
+        } else {
+          selectTool('pen');
+        }
+      },
+      'm': 'image',
+      'b': 'gui',
+      'x': 'icon',
+      'c': 'comment',
+      'k': 'scale',
+      'i': 'eyedropper',
+      'h': 'hotspot',
+      'e': 'slice',
+      'q': 'avatar',
+      's': 'component'
+    };
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      
+      const key = e.key.toLowerCase();
+      if (key === ' ' && state.currentTool !== 'hand') {
+        e.preventDefault();
+        selectTool('hand');
+        state.isPanning = true;
+      } else if (keyMap[key]) {
+        e.preventDefault();
+        if (typeof keyMap[key] === 'function') {
+          keyMap[key]();
+        } else {
+          selectTool(keyMap[key]);
+        }
+      } else if (key === 'escape') {
+        selectTool('select');
+      } else if (key === 'z' && e.metaKey) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+      } else if (key === 'delete' || key === 'backspace') {
+        if (state.selectedShape) {
+          deleteShape(state.selectedShape);
+        }
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (e.key === ' ' && state.currentTool === 'hand') {
+        selectTool('select');
+        state.isPanning = false;
+      }
+    });
+
+    // Mouse Events
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('mouseleave', handleMouseUp);
+
+    function getCanvasPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (e.clientX - rect.left) / state.zoom - state.panX,
+        y: (e.clientY - rect.top) / state.zoom - state.panY
+      };
+    }
+
+    function handleMouseDown(e) {
+      const pos = getCanvasPos(e);
+      state.startX = pos.x;
+      state.startY = pos.y;
+      state.isDrawing = true;
+
+      if (state.currentTool === 'select') {
+        // Check if clicking on a shape
+        const clickedShape = findShapeAt(pos.x, pos.y);
+        if (clickedShape) {
+          selectShape(clickedShape);
+          state.selectedShape = clickedShape;
+          // Enable path editing if it's a pen/pencil path
+          if (clickedShape.type === 'pen' || clickedShape.type === 'pencil') {
+            enablePathEditing(clickedShape);
+          }
+        } else {
+          deselectShape();
+          state.editingPath = null;
+          document.querySelectorAll('.bezier-handle, .bezier-line').forEach(el => el.remove());
+        }
+      } else if (state.currentTool === 'hand') {
+        state.isPanning = true;
+        state.lastPanX = e.clientX;
+        state.lastPanY = e.clientY;
+      } else if (state.currentTool === 'pen' || state.currentTool === 'pencil') {
+        const point = {
+          x: pos.x,
+          y: pos.y,
+          handles: state.currentTool === 'pen' ? {
+            in: { x: pos.x - 20, y: pos.y },
+            out: { x: pos.x + 20, y: pos.y }
+          } : null
+        };
+        state.currentPath = [point];
+      } else if (state.currentTool === 'text') {
+        createText(pos.x, pos.y);
+      } else if (state.currentTool === 'image') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (ev) => {
+          const file = ev.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              createImage(pos.x, pos.y, e.target.result);
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        input.click();
+      } else if (state.currentTool === 'eyedropper') {
+        sampleColorAt(pos.x, pos.y);
+      } else if (state.currentTool === 'scale') {
+        // Scale tool: select shape and enter scale mode
+        const clickedShape = findShapeAt(pos.x, pos.y);
+        if (clickedShape) {
+          selectShape(clickedShape);
+          state.selectedShape = clickedShape;
+          state.scalingShape = clickedShape;
+          state.scaleStartX = clickedShape.width || 100;
+          state.scaleStartY = clickedShape.height || 100;
+          state.scaleCenterX = clickedShape.x + (clickedShape.width || 100) / 2;
+          state.scaleCenterY = clickedShape.y + (clickedShape.height || 100) / 2;
+        } else {
+          deselectShape();
+          state.scalingShape = null;
+        }
+      }
+    }
+
+    function handleMouseMove(e) {
+      const pos = getCanvasPos(e);
+      
+      if (state.currentTool === 'hand' && state.isPanning) {
+        state.panX += (e.clientX - state.lastPanX) / state.zoom;
+        state.panY += (e.clientY - state.lastPanY) / state.zoom;
+        state.lastPanX = e.clientX;
+        state.lastPanY = e.clientY;
+        redraw();
+        return;
+      }
+
+      if (state.currentTool === 'eyedropper') {
+        sampleColorAt(pos.x, pos.y, true);
+        return;
+      }
+
+      if (state.currentTool === 'scale' && state.scalingShape && state.isDrawing) {
+        // Calculate scale based on distance from center
+        const dx = pos.x - state.scaleCenterX;
+        const dy = pos.y - state.scaleCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const startDistance = Math.sqrt(
+          Math.pow(state.scaleStartX / 2, 2) + Math.pow(state.scaleStartY / 2, 2)
+        );
+        const scale = Math.max(0.1, distance / startDistance);
+        
+        state.scalingShape.width = state.scaleStartX * scale;
+        state.scalingShape.height = state.scaleStartY * scale;
+        state.scalingShape.x = state.scaleCenterX - state.scalingShape.width / 2;
+        state.scalingShape.y = state.scaleCenterY - state.scalingShape.height / 2;
+        
+        // Update properties panel
+        if (state.scalingShape.width !== undefined) {
+          document.getElementById('width').value = Math.round(state.scalingShape.width);
+        }
+        if (state.scalingShape.height !== undefined) {
+          document.getElementById('height').value = Math.round(state.scalingShape.height);
+        }
+        if (state.scalingShape.x !== undefined) {
+          document.getElementById('posX').value = Math.round(state.scalingShape.x);
+        }
+        if (state.scalingShape.y !== undefined) {
+          document.getElementById('posY').value = Math.round(state.scalingShape.y);
+        }
+        
+        updateStatus(`Scale: ${Math.round(scale * 100)}%`);
+        redraw();
+        return;
+      }
+
+      if (!state.isDrawing) return;
+
+      if (state.currentTool === 'pen' || state.currentTool === 'pencil') {
+        const point = {
+          x: pos.x,
+          y: pos.y,
+          handles: state.currentTool === 'pen' ? {
+            in: { x: pos.x - 20, y: pos.y },
+            out: { x: pos.x + 20, y: pos.y }
+          } : null
+        };
+        state.currentPath.push(point);
+        redraw();
+        drawCurrentPath();
+      } else if (state.currentTool !== 'select' && state.currentTool !== 'text' && state.currentTool !== 'eyedropper' && state.currentTool !== 'scale') {
+        redraw();
+        drawPreview(pos.x, pos.y);
+      }
+    }
+
+    function handleMouseUp(e) {
+      if (!state.isDrawing) return;
+      
+      const pos = getCanvasPos(e);
+      state.isDrawing = false;
+
+      if (state.currentTool === 'scale' && state.scalingShape) {
+        saveState();
+        state.scalingShape = null;
+        updateStatus('Scale complete');
+        return;
+      }
+
+      if (state.currentTool === 'pen' || state.currentTool === 'pencil') {
+        if (state.currentPath.length > 1) {
+          createPath(state.currentPath, state.currentTool === 'pencil');
+        }
+        state.currentPath = [];
+      } else if (state.currentTool === 'frame') {
+        createFrame(state.startX, state.startY, pos.x - state.startX, pos.y - state.startY);
+      } else if (state.currentTool === 'shape') {
+        createShape(state.currentShape, state.startX, state.startY, pos.x - state.startX, pos.y - state.startY);
+      }
+      
+      redraw();
+      state.isPanning = false;
+    }
+
+    // Shape Creation
+    function createShape(type, x, y, w, h) {
+      saveState();
+      const shape = {
+        id: Date.now(),
+        type: type,
+        x: Math.min(x, x + w),
+        y: Math.min(y, y + h),
+        width: Math.abs(w),
+        height: Math.abs(h),
+        fill: document.getElementById('fillColor').value,
+        stroke: document.getElementById('strokeColor').value,
+        strokeWidth: parseInt(document.getElementById('strokeWidth').value),
+        opacity: parseFloat(document.getElementById('opacity').value),
+        rotation: 0
+      };
+      state.shapes.push(shape);
+      updateLayersList();
+      selectShape(shape);
+    }
+
+    function createFrame(x, y, w, h) {
+      saveState();
+      const frame = {
+        id: Date.now(),
+        type: 'frame',
+        x: Math.min(x, x + w),
+        y: Math.min(y, y + h),
+        width: Math.abs(w),
+        height: Math.abs(h),
+        fill: 'transparent',
+        stroke: '#4a9eff',
+        strokeWidth: 2,
+        opacity: 1,
+        rotation: 0
+      };
+      state.shapes.push(frame);
+      updateLayersList();
+      selectShape(frame);
+    }
+
+    function createText(x, y, text) {
+      if (!text) {
+        text = prompt('Enter text:');
+      }
+      if (text) {
+        saveState();
+        const shape = {
+          id: Date.now(),
+          type: 'text',
+          x: x,
+          y: y,
+          text: text,
+          fontSize: 16,
+          fill: document.getElementById('fillColor').value,
+          opacity: 1,
+          rotation: 0
+        };
+        state.shapes.push(shape);
+        updateLayersList();
+        selectShape(shape);
+        redraw();
+      }
+    }
+
+    function createImage(x, y, src) {
+      saveState();
+      const img = new Image();
+      img.onload = () => {
+        const shape = {
+          id: Date.now(),
+          type: 'image',
+          x: x,
+          y: y,
+          width: img.width,
+          height: img.height,
+          src: src,
+          opacity: 1,
+          rotation: 0
+        };
+        state.shapes.push(shape);
+        updateLayersList();
+        selectShape(shape);
+        redraw();
+      };
+      img.src = src;
+    }
+
+    function createPath(points, isPencil) {
+      saveState();
+      const shape = {
+        id: Date.now(),
+        type: isPencil ? 'pencil' : 'pen',
+        points: [...points],
+        stroke: document.getElementById('strokeColor').value,
+        strokeWidth: isPencil ? 1 : parseInt(document.getElementById('strokeWidth').value),
+        opacity: parseFloat(document.getElementById('opacity').value),
+        rotation: 0
+      };
+      state.shapes.push(shape);
+      updateLayersList();
+      selectShape(shape);
+    }
+
+    // Drawing Functions
+    function drawShape(shape) {
+      ctx.save();
+      ctx.globalAlpha = shape.opacity || 1;
+      
+      if (shape.rotation) {
+        ctx.translate(shape.x + shape.width / 2, shape.y + shape.height / 2);
+        ctx.rotate((shape.rotation * Math.PI) / 180);
+        ctx.translate(-(shape.x + shape.width / 2), -(shape.y + shape.height / 2));
+      }
+
+      ctx.fillStyle = shape.fill || 'transparent';
+      ctx.strokeStyle = shape.stroke || '#000';
+      ctx.lineWidth = shape.strokeWidth || 0;
+
+      switch (shape.type) {
+        case 'rect':
+          ctx.fillRect(shape.x, shape.y, shape.width, shape.height);
+          if (shape.strokeWidth > 0) ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+          break;
+        case 'rounded':
+          drawRoundedRect(shape.x, shape.y, shape.width, shape.height, 8);
+          break;
+        case 'line':
+          ctx.beginPath();
+          ctx.moveTo(shape.x, shape.y);
+          ctx.lineTo(shape.x + shape.width, shape.y + shape.height);
+          ctx.stroke();
+          break;
+        case 'arrow':
+          drawArrow(shape.x, shape.y, shape.x + shape.width, shape.y + shape.height);
+          break;
+        case 'oval':
+          ctx.beginPath();
+          ctx.ellipse(shape.x + shape.width / 2, shape.y + shape.height / 2, 
+                     Math.abs(shape.width) / 2, Math.abs(shape.height) / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          if (shape.strokeWidth > 0) ctx.stroke();
+          break;
+        case 'triangle':
+          drawTriangle(shape.x, shape.y, shape.width, shape.height);
+          break;
+        case 'polygon':
+          drawPolygon(shape.x + shape.width / 2, shape.y + shape.height / 2, 
+                     Math.min(shape.width, shape.height) / 2, 6);
+          break;
+        case 'star':
+          drawStar(shape.x + shape.width / 2, shape.y + shape.height / 2, 
+                   Math.min(shape.width, shape.height) / 2, 5);
+          break;
+        case 'frame':
+          ctx.strokeStyle = shape.stroke;
+          ctx.lineWidth = shape.strokeWidth;
+          ctx.setLineDash([5, 5]);
+          ctx.strokeRect(shape.x, shape.y, shape.width, shape.height);
+          ctx.setLineDash([]);
+          break;
+        case 'text':
+          ctx.fillStyle = shape.fill;
+          ctx.font = `${shape.fontSize}px sans-serif`;
+          ctx.fillText(shape.text, shape.x, shape.y);
+          break;
+        case 'image':
+          if (shape._img && shape._img.complete) {
+            ctx.drawImage(shape._img, shape.x, shape.y, shape.width, shape.height);
+          } else {
+            const img = new Image();
+            img.onload = () => {
+              shape._img = img;
+              redraw();
+            };
+            img.src = shape.src;
+          }
+          break;
+        case 'pen':
+        case 'pencil':
+          if (shape.points && shape.points.length > 1) {
+            ctx.strokeStyle = shape.stroke;
+            ctx.lineWidth = shape.strokeWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            
+            const p0 = shape.points[0];
+            ctx.moveTo(p0.x, p0.y);
+            
+            for (let i = 1; i < shape.points.length; i++) {
+              const p1 = shape.points[i];
+              const pPrev = shape.points[i - 1];
+              
+              if (pPrev.handles && pPrev.handles.out && p1.handles && p1.handles.in) {
+                // Bézier curve
+                ctx.bezierCurveTo(
+                  pPrev.handles.out.x, pPrev.handles.out.y,
+                  p1.handles.in.x, p1.handles.in.y,
+                  p1.x, p1.y
+                );
+              } else {
+                ctx.lineTo(p1.x, p1.y);
+              }
+            }
+            
+            ctx.stroke();
+          }
+          break;
+      }
+      
+      ctx.restore();
+    }
+
+    function drawRoundedRect(x, y, w, h, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + w - radius, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+      ctx.lineTo(x + w, y + h - radius);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      ctx.lineTo(x + radius, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+      ctx.fill();
+      if (ctx.lineWidth > 0) ctx.stroke();
+    }
+
+    function drawArrow(x1, y1, x2, y2) {
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const headlen = 15;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), y2 - headlen * Math.sin(angle - Math.PI / 6));
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6), y2 - headlen * Math.sin(angle + Math.PI / 6));
+      ctx.stroke();
+    }
+
+    function drawTriangle(x, y, w, h) {
+      ctx.beginPath();
+      ctx.moveTo(x + w / 2, y);
+      ctx.lineTo(x + w, y + h);
+      ctx.lineTo(x, y + h);
+      ctx.closePath();
+      ctx.fill();
+      if (ctx.lineWidth > 0) ctx.stroke();
+    }
+
+    function drawPolygon(x, y, radius, sides) {
+      ctx.beginPath();
+      for (let i = 0; i < sides; i++) {
+        const angle = (i * 2 * Math.PI) / sides - Math.PI / 2;
+        const px = x + radius * Math.cos(angle);
+        const py = y + radius * Math.sin(angle);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      if (ctx.lineWidth > 0) ctx.stroke();
+    }
+
+    function drawStar(x, y, radius, points) {
+      ctx.beginPath();
+      for (let i = 0; i < points * 2; i++) {
+        const angle = (i * Math.PI) / points - Math.PI / 2;
+        const r = i % 2 === 0 ? radius : radius * 0.5;
+        const px = x + r * Math.cos(angle);
+        const py = y + r * Math.sin(angle);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fill();
+      if (ctx.lineWidth > 0) ctx.stroke();
+    }
+
+    function drawPreview(x, y) {
+      const w = x - state.startX;
+      const h = y - state.startY;
+      
+      ctx.save();
+      ctx.strokeStyle = '#4a9eff';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      
+      switch (state.currentTool) {
+        case 'frame':
+          ctx.strokeRect(state.startX, state.startY, w, h);
+          break;
+        case 'shape':
+          switch (state.currentShape) {
+            case 'rect':
+              ctx.strokeRect(state.startX, state.startY, w, h);
+              break;
+            case 'oval':
+              ctx.beginPath();
+              ctx.ellipse(state.startX + w / 2, state.startY + h / 2, 
+                         Math.abs(w) / 2, Math.abs(h) / 2, 0, 0, Math.PI * 2);
+              ctx.stroke();
+              break;
+          }
+          break;
+      }
+      
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+
+    function drawCurrentPath() {
+      if (state.currentPath.length < 2) return;
+      ctx.save();
+      ctx.strokeStyle = document.getElementById('strokeColor').value;
+      ctx.lineWidth = state.currentTool === 'pencil' ? 1 : parseInt(document.getElementById('strokeWidth').value);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(state.currentPath[0].x, state.currentPath[0].y);
+      for (let i = 1; i < state.currentPath.length; i++) {
+        ctx.lineTo(state.currentPath[i].x, state.currentPath[i].y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function redraw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.scale(state.zoom, state.zoom);
+      ctx.translate(state.panX, state.panY);
+      
+      // Draw grid
+      drawGrid();
+      
+      // Draw all shapes
+      state.shapes.forEach(shape => {
+        if (shape.visible !== false) {
+          drawShape(shape);
+        }
+      });
+      
+      // Draw selection
+      if (state.selectedShape) {
+        drawSelection(state.selectedShape);
+      }
+      
+      ctx.restore();
+    }
+
+    function drawGrid() {
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      const gridSize = 20;
+      const startX = Math.floor(-state.panX / gridSize) * gridSize;
+      const startY = Math.floor(-state.panY / gridSize) * gridSize;
+      
+      for (let x = startX; x < canvas.width / state.zoom + state.panX; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, -state.panY);
+        ctx.lineTo(x, canvas.height / state.zoom - state.panY);
+        ctx.stroke();
+      }
+      
+      for (let y = startY; y < canvas.height / state.zoom + state.panY; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(-state.panX, y);
+        ctx.lineTo(canvas.width / state.zoom - state.panX, y);
+        ctx.stroke();
+      }
+    }
+
+    function drawSelection(shape) {
+      ctx.save();
+      ctx.strokeStyle = '#4a9eff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(shape.x - 2, shape.y - 2, (shape.width || 0) + 4, (shape.height || 0) + 4);
+      ctx.setLineDash([]);
+      
+      // Draw scale handle if scale tool is active
+      if (state.currentTool === 'scale' && shape === state.selectedShape) {
+        const centerX = shape.x + (shape.width || 0) / 2;
+        const centerY = shape.y + (shape.height || 0) / 2;
+        const handleX = shape.x + (shape.width || 0);
+        const handleY = shape.y;
+        
+        // Draw line from center to handle
+        ctx.strokeStyle = '#ffa500';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(handleX, handleY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Draw scale handle
+        ctx.fillStyle = '#ffa500';
+        ctx.beginPath();
+        ctx.arc(handleX, handleY, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      
+      ctx.restore();
+    }
+
+    // Eyedropper Tool
+    function sampleColorAt(x, y, preview = false) {
+      // Redraw everything to canvas first to sample from
+      redraw();
+      
+      // Convert canvas coordinates to pixel coordinates
+      const pixelX = Math.round((x + state.panX) * state.zoom);
+      const pixelY = Math.round((y + state.panY) * state.zoom);
+      
+      // Get image data at clicked position
+      try {
+        const imageData = ctx.getImageData(pixelX, pixelY, 1, 1);
+        const pixel = imageData.data;
+        const r = pixel[0];
+        const g = pixel[1];
+        const b = pixel[2];
+        const a = pixel[3];
+        
+        // Convert to hex color
+        const hex = rgbToHex(r, g, b);
+        
+        if (preview) {
+          // Just show preview in status
+          updateStatus(`Color: ${hex} (R:${r} G:${g} B:${b})`);
+        } else {
+          // Apply color to selected shape or properties panel
+          if (state.selectedShape) {
+            // Check if user wants fill or stroke (default to fill)
+            // For now, apply to fill
+            state.selectedShape.fill = hex;
+            document.getElementById('fillColor').value = hex;
+            updateStatus(`Applied fill color: ${hex}`);
+          } else {
+            // Update properties panel default
+            document.getElementById('fillColor').value = hex;
+            updateStatus(`Set fill color: ${hex}`);
+          }
+          redraw();
+        }
+      } catch (e) {
+        console.error('Error sampling color:', e);
+        updateStatus('Error sampling color');
+      }
+    }
+
+    function rgbToHex(r, g, b) {
+      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    // Selection
+    function findShapeAt(x, y) {
+      for (let i = state.shapes.length - 1; i >= 0; i--) {
+        const shape = state.shapes[i];
+        if (shape.type === 'text') {
+          if (x >= shape.x && x <= shape.x + 100 && y >= shape.y - 20 && y <= shape.y) {
+            return shape;
+          }
+        } else if (shape.type === 'pen' || shape.type === 'pencil') {
+          // Simple point-in-path check
+          for (let p of shape.points || []) {
+            if (Math.abs(p.x - x) < 5 && Math.abs(p.y - y) < 5) return shape;
+          }
+        } else if (x >= shape.x && x <= shape.x + (shape.width || 0) &&
+                   y >= shape.y && y <= shape.y + (shape.height || 0)) {
+          return shape;
+        }
+      }
+      return null;
+    }
+
+    function selectShape(shape) {
+      state.selectedShape = shape;
+      updatePropertiesPanel(shape);
+      updateLayersList();
+      redraw();
+    }
+
+    function deselectShape() {
+      state.selectedShape = null;
+      updatePropertiesPanel(null);
+      updateLayersList();
+      redraw();
+    }
+
+    // Properties Panel
+    function updatePropertiesPanel(shape) {
+      if (!shape) {
+        document.getElementById('fillColor').value = '#4a9eff';
+        document.getElementById('strokeColor').value = '#000000';
+        document.getElementById('strokeWidth').value = 2;
+        document.getElementById('opacity').value = 1;
+        document.getElementById('posX').value = 0;
+        document.getElementById('posY').value = 0;
+        document.getElementById('width').value = 100;
+        document.getElementById('height').value = 100;
+        document.getElementById('rotation').value = 0;
+        return;
+      }
+
+      if (shape.fill) document.getElementById('fillColor').value = shape.fill;
+      if (shape.stroke) document.getElementById('strokeColor').value = shape.stroke;
+      if (shape.strokeWidth !== undefined) document.getElementById('strokeWidth').value = shape.strokeWidth;
+      if (shape.opacity !== undefined) document.getElementById('opacity').value = shape.opacity;
+      if (shape.x !== undefined) document.getElementById('posX').value = Math.round(shape.x);
+      if (shape.y !== undefined) document.getElementById('posY').value = Math.round(shape.y);
+      if (shape.width !== undefined) document.getElementById('width').value = Math.round(shape.width);
+      if (shape.height !== undefined) document.getElementById('height').value = Math.round(shape.height);
+      if (shape.rotation !== undefined) document.getElementById('rotation').value = shape.rotation;
+    }
+
+    // Property Change Handlers
+    document.getElementById('fillColor').addEventListener('change', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.fill = e.target.value;
+        redraw();
+      }
+    });
+
+    document.getElementById('strokeColor').addEventListener('change', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.stroke = e.target.value;
+        redraw();
+      }
+    });
+
+    document.getElementById('strokeWidth').addEventListener('input', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.strokeWidth = parseInt(e.target.value);
+        document.getElementById('strokeWidthValue').textContent = e.target.value + 'px';
+        redraw();
+      }
+    });
+
+    document.getElementById('opacity').addEventListener('input', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.opacity = parseFloat(e.target.value);
+        document.getElementById('opacityValue').textContent = Math.round(e.target.value * 100) + '%';
+        redraw();
+      }
+    });
+
+    document.getElementById('posX').addEventListener('change', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.x = parseFloat(e.target.value);
+        redraw();
+      }
+    });
+
+    document.getElementById('posY').addEventListener('change', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.y = parseFloat(e.target.value);
+        redraw();
+      }
+    });
+
+    document.getElementById('width').addEventListener('change', (e) => {
+      if (state.selectedShape && state.selectedShape.width !== undefined) {
+        state.selectedShape.width = parseFloat(e.target.value);
+        redraw();
+      }
+    });
+
+    document.getElementById('height').addEventListener('change', (e) => {
+      if (state.selectedShape && state.selectedShape.height !== undefined) {
+        state.selectedShape.height = parseFloat(e.target.value);
+        redraw();
+      }
+    });
+
+    document.getElementById('rotation').addEventListener('input', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.rotation = parseFloat(e.target.value);
+        document.getElementById('rotationValue').textContent = e.target.value + '°';
+        redraw();
+      }
+    });
+
+    // Layers Panel
+    function updateLayersList() {
+      const list = document.getElementById('layersList');
+      list.innerHTML = '';
+      state.shapes.slice().reverse().forEach(shape => {
+        const li = document.createElement('li');
+        li.className = 'layer-item' + (state.selectedShape === shape ? ' selected' : '');
+        li.innerHTML = `
+          <div class="layer-visibility ${shape.visible !== false ? 'visible' : ''}" 
+               onclick="event.stopPropagation(); toggleLayerVisibility(${shape.id})"></div>
+          <span onclick="selectShapeById(${shape.id})">${shape.type} (${shape.id})</span>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    window.selectShapeById = (id) => {
+      const shape = state.shapes.find(s => s.id === id);
+      if (shape) selectShape(shape);
+    };
+
+    window.toggleLayerVisibility = (id) => {
+      const shape = state.shapes.find(s => s.id === id);
+      if (shape) {
+        shape.visible = shape.visible === false ? true : false;
+        updateLayersList();
+        redraw();
+      }
+    };
+
+    function deleteShape(shape) {
+      saveState();
+      const index = state.shapes.indexOf(shape);
+      if (index > -1) {
+        state.shapes.splice(index, 1);
+        if (state.selectedShape === shape) {
+          state.selectedShape = null;
+        }
+        updateLayersList();
+        redraw();
+      }
+    }
+
+    // Status Bar
+    function updateStatus(text) {
+      document.getElementById('statusText').textContent = text;
+    }
+
+    // Zoom
+    canvas.addEventListener('wheel', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        state.zoom = Math.max(0.1, Math.min(5, state.zoom * delta));
+        document.getElementById('zoomText').textContent = Math.round(state.zoom * 100) + '%';
+        redraw();
+      }
+    });
+
+    // Export/Save
+    document.getElementById('saveBtn').addEventListener('click', () => {
+      canvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'design.png';
+        a.click();
+        // Revoke URL after a short delay to ensure download starts
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+      });
+    });
+
+    // Undo/Redo (simplified)
+    let history = [];
+    let historyIndex = -1;
+
+    function saveState() {
+      history = history.slice(0, historyIndex + 1);
+      history.push(JSON.parse(JSON.stringify(state.shapes)));
+      historyIndex++;
+      if (history.length > 50) {
+        history.shift();
+        historyIndex--;
+      }
+    }
+
+    function undo() {
+      if (historyIndex > 0) {
+        historyIndex--;
+        state.shapes = JSON.parse(JSON.stringify(history[historyIndex]));
+        updateLayersList();
+        redraw();
+      }
+    }
+
+    function redo() {
+      if (historyIndex < history.length - 1) {
+        historyIndex++;
+        state.shapes = JSON.parse(JSON.stringify(history[historyIndex]));
+        updateLayersList();
+        redraw();
+      }
+    }
+
+    // Component System
+    state.components = [];
+    state.componentInstances = new Map();
+
+    function createComponent(shapes) {
+      const component = {
+        id: 'comp_' + Date.now(),
+        name: prompt('Component name:', 'Component ' + (state.components.length + 1)) || 'Component',
+        shapes: JSON.parse(JSON.stringify(shapes)),
+        createdAt: Date.now()
+      };
+      state.components.push(component);
+      updateComponentsList();
+      return component;
+    }
+
+    function createComponentInstance(componentId, x, y) {
+      const component = state.components.find(c => c.id === componentId);
+      if (!component) return;
+
+      const instance = {
+        id: 'inst_' + Date.now(),
+        componentId: componentId,
+        x: x,
+        y: y,
+        shapes: JSON.parse(JSON.stringify(component.shapes))
+      };
+
+      // Offset shapes to instance position
+      instance.shapes.forEach(shape => {
+        shape.x = (shape.x || 0) + x;
+        shape.y = (shape.y || 0) + y;
+        shape._instanceId = instance.id;
+        shape._componentId = componentId;
+      });
+
+      state.shapes.push(...instance.shapes);
+      state.componentInstances.set(instance.id, instance);
+      updateLayersList();
+      redraw();
+      return instance;
+    }
+
+    function detachComponentInstance(shape) {
+      if (shape._instanceId) {
+        const instance = state.componentInstances.get(shape._instanceId);
+        if (instance) {
+          // Remove instance tracking
+          state.shapes.forEach(s => {
+            if (s._instanceId === instance.id) {
+              delete s._instanceId;
+              delete s._componentId;
+            }
+          });
+          state.componentInstances.delete(instance.id);
+          updateLayersList();
+          redraw();
+        }
+      }
+    }
+
+    function updateComponentsList() {
+      const list = document.getElementById('componentsList');
+      list.innerHTML = '';
+      state.components.forEach(comp => {
+        const item = document.createElement('div');
+        item.className = 'component-item';
+        item.innerHTML = `
+          <span>${comp.name}</span>
+          <span class="component-badge">Component</span>
+        `;
+        item.onclick = () => {
+          const pos = { x: canvas.width / 2 / state.zoom - state.panX, y: canvas.height / 2 / state.zoom - state.panY };
+          createComponentInstance(comp.id, pos.x, pos.y);
+        };
+        list.appendChild(item);
+      });
+    }
+
+    document.getElementById('createComponentBtn').addEventListener('click', () => {
+      if (state.selectedShape) {
+        // Create component from selected shape and its siblings in same group
+        const shapes = state.shapes.filter(s => {
+          // Simple: create from all selected shapes or just the selected one
+          return s === state.selectedShape || (s._group && state.selectedShape._group && s._group === state.selectedShape._group);
+        });
+        if (shapes.length === 0) shapes.push(state.selectedShape);
+        createComponent(shapes);
+      } else {
+        alert('Select a shape first to create a component');
+      }
+    });
+
+    document.getElementById('detachComponentBtn').addEventListener('click', () => {
+      if (state.selectedShape && state.selectedShape._instanceId) {
+        detachComponentInstance(state.selectedShape);
+      } else {
+        alert('Select a component instance first');
+      }
+    });
+
+    // Comments System
+    state.comments = [];
+
+    function addComment(x, y, text) {
+      const comment = {
+        id: 'comment_' + Date.now(),
+        x: x,
+        y: y,
+        text: text || '',
+        createdAt: Date.now(),
+        resolved: false
+      };
+      state.comments.push(comment);
+      updateCommentsList();
+      redrawComments();
+      return comment;
+    }
+
+    function updateCommentsList() {
+      const list = document.getElementById('commentsList');
+      list.innerHTML = '';
+      state.comments.forEach(comment => {
+        const item = document.createElement('div');
+        item.className = 'layer-item';
+        item.style.opacity = comment.resolved ? 0.5 : 1;
+        item.innerHTML = `
+          <span>💬 Comment ${state.comments.indexOf(comment) + 1}</span>
+          <button class="btn" style="margin-left: auto; padding: 2px 6px; font-size: 10px;" 
+                  onclick="resolveComment('${comment.id}')">${comment.resolved ? 'Unresolve' : 'Resolve'}</button>
+        `;
+        item.onclick = () => {
+          // Center view on comment
+          state.panX = -comment.x + canvas.width / 2 / state.zoom;
+          state.panY = -comment.y + canvas.height / 2 / state.zoom;
+          redraw();
+          redrawComments();
+        };
+        list.appendChild(item);
+      });
+    }
+
+    window.resolveComment = (id) => {
+      const comment = state.comments.find(c => c.id === id);
+      if (comment) {
+        comment.resolved = !comment.resolved;
+        updateCommentsList();
+        redrawComments();
+      }
+    };
+
+    function redrawComments() {
+      // Remove existing comment markers
+      document.querySelectorAll('.comment-marker, .comment-popup').forEach(el => el.remove());
+
+      const container = canvas.parentElement;
+      state.comments.forEach(comment => {
+        if (comment.resolved) return;
+
+        const screenX = (comment.x + state.panX) * state.zoom;
+        const screenY = (comment.y + state.panY) * state.zoom;
+
+        const marker = document.createElement('div');
+        marker.className = 'comment-marker';
+        marker.style.left = screenX + 'px';
+        marker.style.top = screenY + 'px';
+        marker.textContent = state.comments.indexOf(comment) + 1;
+        marker.onclick = (e) => {
+          e.stopPropagation();
+          showCommentPopup(comment, screenX, screenY);
+        };
+        container.appendChild(marker);
+      });
+    }
+
+    function showCommentPopup(comment, x, y) {
+      // Remove existing popup
+      document.querySelectorAll('.comment-popup').forEach(el => el.remove());
+
+      const popup = document.createElement('div');
+      popup.className = 'comment-popup';
+      popup.style.left = (x + 30) + 'px';
+      popup.style.top = y + 'px';
+      popup.innerHTML = `
+        <textarea>${comment.text}</textarea>
+        <div style="margin-top: 8px; display: flex; gap: 4px; justify-content: flex-end;">
+          <button class="btn" onclick="this.closest('.comment-popup').remove()">Close</button>
+          <button class="btn btn-primary" onclick="saveComment('${comment.id}', this.closest('.comment-popup').querySelector('textarea').value)">Save</button>
+        </div>
+      `;
+      canvas.parentElement.appendChild(popup);
+
+      // Close on outside click
+      setTimeout(() => {
+        document.addEventListener('click', function closePopup(e) {
+          if (!popup.contains(e.target) && !e.target.classList.contains('comment-marker')) {
+            popup.remove();
+            document.removeEventListener('click', closePopup);
+          }
+        });
+      }, 100);
+    }
+
+    window.saveComment = (id, text) => {
+      const comment = state.comments.find(c => c.id === id);
+      if (comment) {
+        comment.text = text;
+        updateCommentsList();
+        document.querySelectorAll('.comment-popup').forEach(el => el.remove());
+      }
+    };
+
+    document.getElementById('addCommentBtn').addEventListener('click', () => {
+      const pos = { x: canvas.width / 2 / state.zoom - state.panX, y: canvas.height / 2 / state.zoom - state.panY };
+      const text = prompt('Comment text:');
+      if (text !== null) {
+        addComment(pos.x, pos.y, text);
+      }
+    });
+
+    // Asset Library
+    const assetLibrary = {
+      icons: ['⭐', '❤️', '🔥', '💎', '🎨', '🚀', '⚡', '🌟', '✨', '🎯', '💡', '🔮', '🎭', '🎪', '🎬', '🎮', '🎲', '🎸', '🎺', '🎻', '🥁', '🎤', '🎧', '📱', '💻', '⌚', '📷', '🎥', '📺', '📻'],
+      shapes: ['⬜', '⬛', '🔲', '🔳', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤'],
+      ui: ['📋', '📝', '📄', '📃', '📑', '🔖', '🏷️', '📌', '📍', '📎', '🖇️', '📏', '📐', '✂️', '🔨', '🔧', '🔩', '⚙️', '🔫', '💣', '🔪', '🗡️', '⚔️', '🛡️', '🚬', '⚰️', '⚱️', '🏺', '🔮', '📿']
+    };
+
+    function populateAssetLibrary() {
+      const grid = document.getElementById('assetGrid');
+      grid.innerHTML = '';
+      const allAssets = [...assetLibrary.icons, ...assetLibrary.shapes, ...assetLibrary.ui];
+      
+      allAssets.forEach((asset, idx) => {
+        const item = document.createElement('div');
+        item.className = 'asset-item';
+        item.textContent = asset;
+        item.title = `Asset ${idx + 1}`;
+        item.onclick = () => {
+          const pos = { x: canvas.width / 2 / state.zoom - state.panX, y: canvas.height / 2 / state.zoom - state.panY };
+          createText(pos.x, pos.y, asset);
+        };
+        grid.appendChild(item);
+      });
+    }
+
+    document.getElementById('assetSearch').addEventListener('input', (e) => {
+      const search = e.target.value.toLowerCase();
+      document.querySelectorAll('.asset-item').forEach(item => {
+        const text = item.textContent || item.title || '';
+        item.style.display = text.toLowerCase().includes(search) ? 'flex' : 'none';
+      });
+    });
+
+    // Auto Layout
+    state.autoLayout = {
+      mode: 'none',
+      padding: 8,
+      gap: 8,
+      autoResize: false
+    };
+
+    function applyAutoLayout(containerShape) {
+      if (!containerShape || state.autoLayout.mode === 'none') return;
+
+      const children = state.shapes.filter(s => 
+        s !== containerShape &&
+        s.x >= containerShape.x &&
+        s.y >= containerShape.y &&
+        s.x + (s.width || 0) <= containerShape.x + containerShape.width &&
+        s.y + (s.height || 0) <= containerShape.y + containerShape.height
+      );
+
+      if (children.length === 0) return;
+
+      const padding = state.autoLayout.padding;
+      const gap = state.autoLayout.gap;
+      let currentX = containerShape.x + padding;
+      let currentY = containerShape.y + padding;
+      let rowHeight = 0;
+
+      children.forEach((child, idx) => {
+        if (state.autoLayout.mode === 'hstack') {
+          child.x = currentX;
+          child.y = containerShape.y + padding;
+          currentX += (child.width || 100) + gap;
+          rowHeight = Math.max(rowHeight, child.height || 100);
+        } else if (state.autoLayout.mode === 'vstack') {
+          child.x = containerShape.x + padding;
+          child.y = currentY;
+          currentY += (child.height || 100) + gap;
+        } else if (state.autoLayout.mode === 'grid') {
+          const cols = Math.ceil(Math.sqrt(children.length));
+          const col = idx % cols;
+          const row = Math.floor(idx / cols);
+          child.x = containerShape.x + padding + col * ((containerShape.width - padding * 2) / cols);
+          child.y = containerShape.y + padding + row * ((containerShape.height - padding * 2) / Math.ceil(children.length / cols));
+        }
+      });
+
+      if (state.autoLayout.autoResize && state.autoLayout.mode === 'hstack') {
+        containerShape.width = currentX - gap - containerShape.x + padding;
+        containerShape.height = rowHeight + padding * 2;
+      } else if (state.autoLayout.autoResize && state.autoLayout.mode === 'vstack') {
+        containerShape.height = currentY - gap - containerShape.y + padding;
+      }
+
+      redraw();
+    }
+
+    document.querySelectorAll('.layout-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.autoLayout.mode = btn.dataset.layout;
+        if (state.selectedShape && state.selectedShape.type === 'frame') {
+          applyAutoLayout(state.selectedShape);
+        }
+      });
+    });
+
+    document.getElementById('layoutPadding').addEventListener('change', (e) => {
+      state.autoLayout.padding = parseInt(e.target.value) || 0;
+      if (state.selectedShape && state.selectedShape.type === 'frame') {
+        applyAutoLayout(state.selectedShape);
+      }
+    });
+
+    document.getElementById('layoutGap').addEventListener('change', (e) => {
+      state.autoLayout.gap = parseInt(e.target.value) || 0;
+      if (state.selectedShape && state.selectedShape.type === 'frame') {
+        applyAutoLayout(state.selectedShape);
+      }
+    });
+
+    document.getElementById('autoResize').addEventListener('change', (e) => {
+      state.autoLayout.autoResize = e.target.checked;
+      if (state.selectedShape && state.selectedShape.type === 'frame') {
+        applyAutoLayout(state.selectedShape);
+      }
+    });
+
+    // Enhanced Vector Editing with Bézier Curves
+    state.editingPath = null;
+    state.selectedPoint = null;
+    state.selectedHandle = null;
+
+    function enablePathEditing(shape) {
+      if (shape.type !== 'pen' && shape.type !== 'pencil') return;
+      state.editingPath = shape;
+      state.penMode = true;
+      redraw();
+      drawBezierHandles(shape);
+    }
+
+    function drawBezierHandles(shape) {
+      // Remove existing handles
+      document.querySelectorAll('.bezier-handle, .bezier-line').forEach(el => el.remove());
+
+      if (!shape.points || shape.points.length < 2) return;
+
+      const container = canvas.parentElement;
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.style.position = 'absolute';
+      svg.style.top = '0';
+      svg.style.left = '0';
+      svg.style.width = canvas.width + 'px';
+      svg.style.height = canvas.height + 'px';
+      svg.style.pointerEvents = 'none';
+      svg.style.zIndex = '999';
+
+      shape.points.forEach((point, idx) => {
+        if (point.handles) {
+          const screenX = (point.x + state.panX) * state.zoom;
+          const screenY = (point.y + state.panY) * state.zoom;
+
+          // Draw handle lines
+          if (point.handles.in) {
+            const inX = (point.handles.in.x + state.panX) * state.zoom;
+            const inY = (point.handles.in.y + state.panY) * state.zoom;
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', screenX);
+            line.setAttribute('y1', screenY);
+            line.setAttribute('x2', inX);
+            line.setAttribute('y2', inY);
+            line.setAttribute('class', 'bezier-line');
+            svg.appendChild(line);
+
+            const handle = document.createElement('div');
+            handle.className = 'bezier-handle';
+            handle.style.left = (inX - 4) + 'px';
+            handle.style.top = (inY - 4) + 'px';
+            handle.dataset.pointIdx = idx;
+            handle.dataset.handleType = 'in';
+            handle.onmousedown = (e) => {
+              e.stopPropagation();
+              state.selectedPoint = idx;
+              state.selectedHandle = 'in';
+              handleMouseMoveForHandle(e);
+            };
+            container.appendChild(handle);
+          }
+
+          if (point.handles.out) {
+            const outX = (point.handles.out.x + state.panX) * state.zoom;
+            const outY = (point.handles.out.y + state.panY) * state.zoom;
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', screenX);
+            line.setAttribute('y1', screenY);
+            line.setAttribute('x2', outX);
+            line.setAttribute('y2', outY);
+            line.setAttribute('class', 'bezier-line');
+            svg.appendChild(line);
+
+            const handle = document.createElement('div');
+            handle.className = 'bezier-handle';
+            handle.style.left = (outX - 4) + 'px';
+            handle.style.top = (outY - 4) + 'px';
+            handle.dataset.pointIdx = idx;
+            handle.dataset.handleType = 'out';
+            handle.onmousedown = (e) => {
+              e.stopPropagation();
+              state.selectedPoint = idx;
+              state.selectedHandle = 'out';
+              handleMouseMoveForHandle(e);
+            };
+            container.appendChild(handle);
+          }
+        }
+      });
+
+      container.appendChild(svg);
+    }
+
+    function handleMouseMoveForHandle(e) {
+      const moveHandler = (ev) => {
+        const pos = getCanvasPos(ev);
+        if (state.editingPath && state.selectedPoint !== null && state.selectedHandle) {
+          const point = state.editingPath.points[state.selectedPoint];
+          if (!point.handles) point.handles = {};
+          point.handles[state.selectedHandle] = { x: pos.x, y: pos.y };
+          redraw();
+          drawBezierHandles(state.editingPath);
+        }
+      };
+
+      const upHandler = () => {
+        document.removeEventListener('mousemove', moveHandler);
+        document.removeEventListener('mouseup', upHandler);
+        state.selectedPoint = null;
+        state.selectedHandle = null;
+      };
+
+      document.addEventListener('mousemove', moveHandler);
+      document.addEventListener('mouseup', upHandler);
+    }
+
+    // Update pen tool to support curves
+    function addCurvePoint(shape, x, y) {
+      if (!shape.points) shape.points = [];
+      const point = {
+        x: x,
+        y: y,
+        handles: {
+          in: { x: x - 20, y: y },
+          out: { x: x + 20, y: y }
+        }
+      };
+      shape.points.push(point);
+    }
+
+    // Sketch File Support (using JSZip)
+    async function loadJSZip() {
+      if (window.JSZip) return window.JSZip;
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+        script.onload = () => resolve(window.JSZip);
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    async function importSketchFile(file) {
+      try {
+        const JSZip = await loadJSZip();
+        const zip = await JSZip.loadAsync(file);
+        
+        // Sketch files contain a document.json
+        const documentJson = await zip.file('document.json').async('string');
+        const document = JSON.parse(documentJson);
+        
+        // Parse pages and layers (simplified)
+        if (document.pages && document.pages[0]) {
+          const page = document.pages[0];
+          if (page.layers) {
+            parseSketchLayers(page.layers, 0, 0);
+            updateLayersList();
+            redraw();
+            updateStatus('Sketch file imported successfully');
+          }
+        }
+      } catch (e) {
+        console.error('Error importing sketch file:', e);
+        alert('Error importing sketch file. Make sure it\'s a valid .sketch file.');
+      }
+    }
+
+    function parseSketchLayers(layers, offsetX, offsetY) {
+      layers.forEach(layer => {
+        if (layer._class === 'shapePath' || layer._class === 'rectangle' || layer._class === 'oval') {
+          const shape = {
+            id: Date.now() + Math.random(),
+            type: layer._class === 'oval' ? 'oval' : 'rect',
+            x: (layer.frame?.x || 0) + offsetX,
+            y: (layer.frame?.y || 0) + offsetY,
+            width: layer.frame?.width || 100,
+            height: layer.frame?.height || 100,
+            fill: layer.style?.fills?.[0]?.color || '#4a9eff',
+            stroke: layer.style?.borders?.[0]?.color || '#000',
+            strokeWidth: layer.style?.borders?.[0]?.thickness || 1,
+            opacity: layer.style?.contextSettings?.opacity || 1,
+            rotation: 0
+          };
+          state.shapes.push(shape);
+        } else if (layer.layers) {
+          parseSketchLayers(layer.layers, offsetX + (layer.frame?.x || 0), offsetY + (layer.frame?.y || 0));
+        }
+      });
+    }
+
+    async function exportSketchFile() {
+      try {
+        const JSZip = await loadJSZip();
+        const zip = new JSZip();
+        
+        // Create simplified sketch document structure
+        const document = {
+          _class: 'document',
+          do_objectID: 'doc_' + Date.now(),
+          assets: { _class: 'assetCollection' },
+          colorSpace: 0,
+          currentPageIndex: 0,
+          pages: [{
+            _class: 'page',
+            do_objectID: 'page_' + Date.now(),
+            layers: state.shapes.map(shape => sketchShapeToLayer(shape))
+          }]
+        };
+
+        zip.file('document.json', JSON.stringify(document));
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'design.sketch';
+        a.click();
+        URL.revokeObjectURL(url);
+        updateStatus('Sketch file exported');
+      } catch (e) {
+        console.error('Error exporting sketch file:', e);
+        alert('Error exporting sketch file');
+      }
+    }
+
+    function sketchShapeToLayer(shape) {
+      const layer = {
+        _class: shape.type === 'oval' ? 'oval' : 'rectangle',
+        do_objectID: 'layer_' + shape.id,
+        frame: {
+          _class: 'rect',
+          x: shape.x || 0,
+          y: shape.y || 0,
+          width: shape.width || 100,
+          height: shape.height || 100
+        },
+        style: {
+          _class: 'style',
+          fills: [{
+            _class: 'fill',
+            color: shape.fill || '#4a9eff'
+          }],
+          borders: [{
+            _class: 'border',
+            color: shape.stroke || '#000',
+            thickness: shape.strokeWidth || 1
+          }],
+          contextSettings: {
+            _class: 'graphicsContextSettings',
+            opacity: shape.opacity || 1
+          }
+        }
+      };
+      return layer;
+    }
+
+    // Update export button to include sketch export
+    document.getElementById('exportBtn').addEventListener('click', async () => {
+      const format = confirm('Export as Sketch file? (OK for Sketch, Cancel for JSON)');
+      if (format) {
+        await exportSketchFile();
+      } else {
+        const data = JSON.stringify({
+          shapes: state.shapes,
+          components: state.components,
+          comments: state.comments
+        }, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'design.json';
+        a.click();
+        // Revoke URL after a short delay to ensure download starts
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+      }
+    });
+
+    // Add sketch import to top bar
+    const importBtn = document.createElement('button');
+    importBtn.className = 'btn';
+    importBtn.textContent = 'Import Sketch';
+    importBtn.onclick = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.sketch';
+      input.onchange = (e) => {
+        if (e.target.files[0]) {
+          importSketchFile(e.target.files[0]);
+        }
+      };
+      input.click();
+    };
+    document.querySelector('.top-bar-actions').insertBefore(importBtn, document.getElementById('exportBtn'));
+
+    // Update redraw to include comments
+    const originalRedraw = redraw;
+    redraw = function() {
+      originalRedraw();
+      redrawComments();
+    };
+
+    // Initialize
+    function init() {
+      saveState();
+      updateStatus('Ready');
+      selectTool('select');
+      populateAssetLibrary();
+      updateComponentsList();
+      updateCommentsList();
+      
+      // Load from localStorage if available
+      try {
+        const saved = localStorage.getItem('designToolState');
+        if (saved) {
+          const data = JSON.parse(saved);
+          if (data.shapes && Array.isArray(data.shapes)) {
+            state.shapes = data.shapes;
+          }
+          if (data.components && Array.isArray(data.components)) {
+            state.components = data.components;
+            updateComponentsList();
+          }
+          if (data.comments && Array.isArray(data.comments)) {
+            state.comments = data.comments;
+            updateCommentsList();
+          }
+          if (data.autoLayout) {
+            state.autoLayout = { ...state.autoLayout, ...data.autoLayout };
+          }
+          updateLayersList();
+          redraw();
+        }
+      } catch (e) {
+        console.warn('Could not load saved state:', e);
+      }
+      
+      // Auto-save periodically
+      setInterval(() => {
+        try {
+          localStorage.setItem('designToolState', JSON.stringify({
+            shapes: state.shapes,
+            components: state.components,
+            comments: state.comments,
+            autoLayout: state.autoLayout
+          }));
+        } catch (e) {
+          console.warn('Could not save state:', e);
+        }
+      }, 30000); // Every 30 seconds
+    }
+    
+    init();
+  </script>
+</body>
+</html>
