@@ -255,7 +255,8 @@
       transformStartX: 0,
       transformStartY: 0,
       transformStartShape: null,
-      clipboard: []
+      clipboard: [],
+      snapToGrid: false
     };
 
     // Canvas Setup
@@ -446,6 +447,14 @@
         } else {
           undo();
         }
+      } else if (key === 'g' && e.metaKey && e.shiftKey && e.altKey) {
+        e.preventDefault();
+        // Toggle snap to grid (Cmd+Shift+Alt+G)
+        state.snapToGrid = !state.snapToGrid;
+        updateStatus(state.snapToGrid ? 'Snap to grid: ON' : 'Snap to grid: OFF');
+        if (window.showInfoModule) {
+          window.showInfoModule(state.snapToGrid ? 'Snap to grid enabled' : 'Snap to grid disabled');
+        }
       } else if (key === 'b' && e.metaKey && e.shiftKey) {
         e.preventDefault();
         // Rotate Copies tool (⌘⇧B)
@@ -614,13 +623,23 @@
     // Coordinate conversion - Use module if available, otherwise fallback
     function getCanvasPos(e) {
       if (window.getCanvasPosUtil) {
-        return window.getCanvasPosUtil(e, canvas, state);
+        const pos = window.getCanvasPosUtil(e, canvas, state);
+        // Apply snap to grid if enabled
+        if (state.snapToGrid && window.snapPointToGridModule) {
+          return window.snapPointToGridModule(pos, 20, state.snapToGrid);
+        }
+        return pos;
       }
       const rect = canvas.getBoundingClientRect();
-      return {
+      let pos = {
         x: (e.clientX - rect.left) / state.zoom - state.panX,
         y: (e.clientY - rect.top) / state.zoom - state.panY
       };
+      // Apply snap to grid if enabled
+      if (state.snapToGrid && window.snapPointToGridModule) {
+        pos = window.snapPointToGridModule(pos, 20, state.snapToGrid);
+      }
+      return pos;
     }
 
     function handleMouseDown(e) {
@@ -936,8 +955,10 @@
         }
         state.currentPath = [];
       } else if (state.currentTool === 'frame') {
+        // Snap to grid is applied inside createFrame
         createFrame(state.startX, state.startY, pos.x - state.startX, pos.y - state.startY);
       } else if (state.currentTool === 'shape') {
+        // Snap to grid is applied inside createShape
         createShape(state.currentShape, state.startX, state.startY, pos.x - state.startX, pos.y - state.startY);
       }
       
@@ -948,13 +969,27 @@
     // Shape Creation
     function createShape(type, x, y, w, h) {
       saveState();
+      
+      // Apply snap to grid if enabled
+      let shapeX = Math.min(x, x + w);
+      let shapeY = Math.min(y, y + h);
+      let shapeW = Math.abs(w);
+      let shapeH = Math.abs(h);
+      
+      if (state.snapToGrid && window.snapToGridModule) {
+        shapeX = window.snapToGridModule(shapeX, 20, state.snapToGrid);
+        shapeY = window.snapToGridModule(shapeY, 20, state.snapToGrid);
+        shapeW = window.snapToGridModule(shapeW, 20, state.snapToGrid);
+        shapeH = window.snapToGridModule(shapeH, 20, state.snapToGrid);
+      }
+      
       const shape = {
         id: Date.now(),
         type: type,
-        x: Math.min(x, x + w),
-        y: Math.min(y, y + h),
-        width: Math.abs(w),
-        height: Math.abs(h),
+        x: shapeX,
+        y: shapeY,
+        width: shapeW,
+        height: shapeH,
         fill: document.getElementById('fillColor').value,
         stroke: document.getElementById('strokeColor').value,
         strokeWidth: parseInt(document.getElementById('strokeWidth').value),
@@ -968,13 +1003,27 @@
 
     function createFrame(x, y, w, h) {
       saveState();
+      
+      // Apply snap to grid if enabled
+      let frameX = Math.min(x, x + w);
+      let frameY = Math.min(y, y + h);
+      let frameW = Math.abs(w);
+      let frameH = Math.abs(h);
+      
+      if (state.snapToGrid && window.snapToGridModule) {
+        frameX = window.snapToGridModule(frameX, 20, state.snapToGrid);
+        frameY = window.snapToGridModule(frameY, 20, state.snapToGrid);
+        frameW = window.snapToGridModule(frameW, 20, state.snapToGrid);
+        frameH = window.snapToGridModule(frameH, 20, state.snapToGrid);
+      }
+      
       const frame = {
         id: Date.now(),
         type: 'frame',
-        x: Math.min(x, x + w),
-        y: Math.min(y, y + h),
-        width: Math.abs(w),
-        height: Math.abs(h),
+        x: frameX,
+        y: frameY,
+        width: frameW,
+        height: frameH,
         fill: 'transparent',
         stroke: '#4a9eff',
         strokeWidth: 2,
@@ -992,11 +1041,21 @@
       }
       if (text) {
         saveState();
+        
+        // Apply snap to grid if enabled
+        let textX = x;
+        let textY = y;
+        if (state.snapToGrid && window.snapPointToGridModule) {
+          const snapped = window.snapPointToGridModule({ x, y }, 20, state.snapToGrid);
+          textX = snapped.x;
+          textY = snapped.y;
+        }
+        
         const shape = {
           id: Date.now(),
           type: 'text',
-          x: x,
-          y: y,
+          x: textX,
+          y: textY,
           text: text,
           fontSize: 16,
           fill: document.getElementById('fillColor').value,
@@ -2538,12 +2597,14 @@
     }
 
     function undo() {
+      let success = false;
       if (historyManager) {
         const previousState = historyManager.undo();
         if (previousState) {
           state.shapes = deepClone(previousState);
           updateLayersList();
           redraw();
+          success = true;
         }
       } else {
         // Fallback to original implementation
@@ -2552,17 +2613,27 @@
           state.shapes = deepClone(history[historyIndex]);
           updateLayersList();
           redraw();
+          success = true;
         }
+      }
+      
+      // Visual feedback
+      if (success && window.showUndoRedoFeedbackModule) {
+        window.showUndoRedoFeedbackModule('undo', historyManager ? historyManager.canUndo() : historyIndex > 0);
+      } else if (!success && window.showWarningModule) {
+        window.showWarningModule('Cannot undo further');
       }
     }
 
     function redo() {
+      let success = false;
       if (historyManager) {
         const nextState = historyManager.redo();
         if (nextState) {
           state.shapes = deepClone(nextState);
           updateLayersList();
           redraw();
+          success = true;
         }
       } else {
         // Fallback to original implementation
@@ -2571,7 +2642,15 @@
           state.shapes = deepClone(history[historyIndex]);
           updateLayersList();
           redraw();
+          success = true;
         }
+      }
+      
+      // Visual feedback
+      if (success && window.showUndoRedoFeedbackModule) {
+        window.showUndoRedoFeedbackModule('redo', historyManager ? historyManager.canRedo() : historyIndex < history.length - 1);
+      } else if (!success && window.showWarningModule) {
+        window.showWarningModule('Cannot redo further');
       }
     }
 
@@ -3154,7 +3233,13 @@
     }
 
     async function importSketchFile(file) {
+      let hideLoading = null;
       try {
+        // Show loading indicator
+        if (window.showLoadingModule) {
+          hideLoading = window.showLoadingModule('Importing Sketch file...');
+        }
+        
         const JSZip = await loadJSZip();
         const zip = await JSZip.loadAsync(file);
         
@@ -3170,11 +3255,30 @@
             updateLayersList();
             redraw();
             updateStatus('Sketch file imported successfully');
+            
+            // Show success message
+            if (window.showSuccessModule) {
+              window.showSuccessModule('Sketch file imported successfully');
+            }
+          } else {
+            throw new Error('No layers found in Sketch file');
           }
+        } else {
+          throw new Error('No pages found in Sketch file');
         }
       } catch (e) {
         console.error('Error importing sketch file:', e);
-        alert('Error importing sketch file. Make sure it\'s a valid .sketch file.');
+        const errorMessage = e.message || 'Error importing sketch file. Make sure it\'s a valid .sketch file.';
+        if (window.showErrorModule) {
+          window.showErrorModule(errorMessage, e);
+        } else {
+          alert(errorMessage);
+        }
+      } finally {
+        // Hide loading indicator
+        if (hideLoading) {
+          hideLoading();
+        }
       }
     }
 
@@ -3321,6 +3425,9 @@
       updateComponentsList();
       updateCommentsList();
       
+      // Initialize snap to grid to false by default
+      state.snapToGrid = false;
+      
       // Load from localStorage if available - Use module if available
       try {
         const saved = window.loadStateUtil ? window.loadStateUtil() : null;
@@ -3451,6 +3558,22 @@
     window.hideContextMenuModule = hideContextMenuModule;
     window.showKeyboardHelpModule = showKeyboardHelpModule;
     window.hideKeyboardHelpModule = hideKeyboardHelpModule;
+    window.showErrorModule = showErrorModule;
+    window.showWarningModule = showWarningModule;
+    window.showInfoModule = showInfoModule;
+    window.showSuccessModule = showSuccessModule;
+    window.withErrorHandlingModule = withErrorHandlingModule;
+    window.showLoadingModule = showLoadingModule;
+    window.showProgressModule = showProgressModule;
+    window.showUndoRedoFeedbackModule = showUndoRedoFeedbackModule;
+    window.snapToGridModule = snapToGridModule;
+    window.snapPointToGridModule = snapPointToGridModule;
+    window.snapShapeToGridModule = snapShapeToGridModule;
+    
+    // Initialize styles for error handler, loading states, and undo/redo feedback
+    initErrorHandlerStyles();
+    initLoadingStyles();
+    initUndoRedoStyles();
     
     // Note: window.redraw, window.canvas, window.ctx, and window.state are
     // initialized by the main script (lines 266-267 and 1592-1593) and should
