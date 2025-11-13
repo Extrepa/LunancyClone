@@ -3515,6 +3515,12 @@
     import { addComment as addCommentModule, updateCommentsList as updateCommentsListModule, redrawComments as redrawCommentsModule, showCommentPopup as showCommentPopupModule } from './js/features/comments.js';
     import { applyAutoLayout as applyAutoLayoutModule, initAutoLayoutControls as initAutoLayoutControlsModule } from './js/features/auto-layout.js';
     import { createVirtualList } from './js/core/virtual-list.js';
+    import { showShapeContextMenu as showShapeContextMenuModule, showCanvasContextMenu as showCanvasContextMenuModule, hideContextMenu as hideContextMenuModule } from './js/features/context-menu.js';
+    import { showKeyboardHelp as showKeyboardHelpModule, hideKeyboardHelp as hideKeyboardHelpModule } from './js/features/keyboard-help.js';
+    import { showError as showErrorModule, showWarning as showWarningModule, showInfo as showInfoModule, showSuccess as showSuccessModule, withErrorHandling as withErrorHandlingModule, initErrorHandlerStyles } from './js/core/error-handler.js';
+    import { showLoading as showLoadingModule, showProgress as showProgressModule, initLoadingStyles } from './js/core/loading-state.js';
+    import { showUndoRedoFeedback as showUndoRedoFeedbackModule, initUndoRedoStyles } from './js/features/undo-redo-feedback.js';
+    import { snapToGrid as snapToGridModule, snapPointToGrid as snapPointToGridModule, snapShapeToGrid as snapShapeToGridModule } from './js/core/snap-to-grid.js';
     
     // Make utilities available globally for backward compatibility
     window.rgbToHex = rgbToHex;
