@@ -50,6 +50,9 @@ export interface Tool {
   // Keyboard event handlers
   onKeyDown?(e: KeyboardEvent): void;
   onKeyUp?(e: KeyboardEvent): void;
+
+  // Get tool type identifier (must be implemented)
+  getType(): ToolType;
 }
 
 /**
