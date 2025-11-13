@@ -1592,7 +1592,12 @@
     window.redraw = redraw;
     window.state = state;
 
+    // Use module if available, otherwise fallback
     function getTransformHandles(shape) {
+      if (window.getTransformHandlesModule) {
+        return window.getTransformHandlesModule(shape);
+      }
+      // Fallback implementation
       if (!shape || (shape.width === undefined && shape.height === undefined)) return [];
       
       const w = shape.width || 0;
@@ -1614,6 +1619,10 @@
     }
 
     function getHandleAt(x, y, shape) {
+      if (window.getHandleAtModule) {
+        return window.getHandleAtModule(x, y, shape, state);
+      }
+      // Fallback implementation
       const handles = getTransformHandles(shape);
       const handleSize = 6;
       
@@ -1722,6 +1731,37 @@
     function applyTransform(handleType, x, y) {
       if (!state.selectedShape || !state.transformStartShape) return;
       
+      if (window.applyTransformModule) {
+        // Use module but need to calculate rotation differently
+        const shape = state.selectedShape;
+        const start = state.transformStartShape;
+        
+        if (handleType === 'rotate') {
+          const centerX = start.x + (start.width || 0) / 2;
+          const centerY = start.y + (start.height || 0) / 2;
+          const startAngle = Math.atan2(state.transformStartY - centerY, state.transformStartX - centerX);
+          const currentAngle = Math.atan2(y - centerY, x - centerX);
+          const rotation = (currentAngle - startAngle) * (180 / Math.PI);
+          shape.rotation = (start.rotation || 0) + rotation;
+          document.getElementById('rotation').value = shape.rotation;
+          document.getElementById('rotationValue').textContent = Math.round(shape.rotation) + '°';
+          // Module doesn't handle rotation, so skip it for rotate
+        } else {
+          // Create a temporary transform start shape with current position
+          const tempStart = { ...start };
+          tempStart.x = state.transformStartX - (tempStart.width || 0) / 2;
+          tempStart.y = state.transformStartY - (tempStart.height || 0) / 2;
+          window.applyTransformModule(shape, handleType, x, y, tempStart);
+          // Update properties panel
+          if (shape.x !== undefined) document.getElementById('posX').value = Math.round(shape.x);
+          if (shape.y !== undefined) document.getElementById('posY').value = Math.round(shape.y);
+          if (shape.width !== undefined) document.getElementById('width').value = Math.round(shape.width);
+          if (shape.height !== undefined) document.getElementById('height').value = Math.round(shape.height);
+        }
+        return;
+      }
+      
+      // Fallback implementation
       const shape = state.selectedShape;
       const start = state.transformStartShape;
       const dx = x - state.transformStartX;
