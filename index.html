@@ -262,6 +262,10 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     
+    // Make canvas and state available to modules
+    window.canvas = canvas;
+    window.ctx = ctx;
+    
     function resizeCanvas() {
       const container = canvas.parentElement;
       canvas.width = container.clientWidth;
@@ -1523,28 +1527,45 @@
       ctx.scale(state.zoom, state.zoom);
       ctx.translate(state.panX, state.panY);
       
-      // Draw grid
-      drawGrid();
+      // Draw grid - Use module if available, otherwise fallback
+      if (window.drawGridModule) {
+        window.drawGridModule(ctx, canvas, state);
+      } else {
+        drawGrid();
+      }
       
       // Draw all shapes
       state.shapes.forEach(shape => {
         if (shape.visible !== false) {
-          drawShape(shape);
+          if (window.drawShapeModule) {
+            window.drawShapeModule(ctx, shape);
+          } else {
+            drawShape(shape);
+          }
         }
       });
       
       // Draw selection
       if (state.selectedShapes.length > 0) {
         state.selectedShapes.forEach(shape => {
-          drawSelection(shape);
+          if (window.drawSelectionModule) {
+            window.drawSelectionModule(ctx, shape, state, state.currentTool);
+          } else {
+            drawSelection(shape);
+          }
         });
       } else if (state.selectedShape) {
-        drawSelection(state.selectedShape);
+        if (window.drawSelectionModule) {
+          window.drawSelectionModule(ctx, state.selectedShape, state, state.currentTool);
+        } else {
+          drawSelection(state.selectedShape);
+        }
       }
       
       ctx.restore();
     }
 
+    // Fallback grid drawing function
     function drawGrid() {
       ctx.strokeStyle = '#333';
       ctx.lineWidth = 1;
@@ -1566,6 +1587,10 @@
         ctx.stroke();
       }
     }
+    
+    // Make redraw available to modules
+    window.redraw = redraw;
+    window.state = state;
 
     function getTransformHandles(shape) {
       if (!shape || (shape.width === undefined && shape.height === undefined)) return [];
@@ -1818,8 +1843,12 @@
       return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
     }
 
-    // Selection
+    // Selection - Use module if available, otherwise fallback
     function findShapeAt(x, y) {
+      if (window.findShapeAtModule) {
+        return window.findShapeAtModule(x, y, state.shapes);
+      }
+      // Fallback implementation
       for (let i = state.shapes.length - 1; i >= 0; i--) {
         const shape = state.shapes[i];
         if (shape.visible === false) continue;
@@ -3097,6 +3126,10 @@
     import { saveState as saveStateUtil, loadState as loadStateUtil, setupAutoSave } from './js/utils/storage.js';
     import { HistoryManager } from './js/utils/history.js';
     
+    // Import shape modules
+    import { drawShape as drawShapeModule, drawGrid as drawGridModule } from './js/shapes/renderer.js';
+    import { drawSelection as drawSelectionModule, getTransformHandles as getTransformHandlesModule, getHandleAt as getHandleAtModule, findShapeAt as findShapeAtModule, applyTransform as applyTransformModule, drawSelectionBox as drawSelectionBoxModule } from './js/shapes/selection.js';
+    
     // Make utilities available globally for backward compatibility
     window.rgbToHex = rgbToHex;
     window.hexToRgb = hexToRgb;
@@ -3109,7 +3142,23 @@
     window.setupAutoSave = setupAutoSave;
     window.HistoryManager = HistoryManager;
     
-    console.log('Module utilities loaded');
+    // Make shape modules available globally
+    window.drawShapeModule = drawShapeModule;
+    window.drawGridModule = drawGridModule;
+    window.drawSelectionModule = drawSelectionModule;
+    window.getTransformHandlesModule = getTransformHandlesModule;
+    window.getHandleAtModule = getHandleAtModule;
+    window.findShapeAtModule = findShapeAtModule;
+    window.applyTransformModule = applyTransformModule;
+    window.drawSelectionBoxModule = drawSelectionBoxModule;
+    
+    // Store redraw function globally so modules can access it
+    window.redraw = null;
+    window.canvas = null;
+    window.ctx = null;
+    window.state = null;
+    
+    console.log('Module utilities and shapes loaded');
   </script>
 </body>
 </html>
