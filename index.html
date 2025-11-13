@@ -256,7 +256,8 @@
       transformStartY: 0,
       transformStartShape: null,
       clipboard: [],
-      snapToGrid: false
+      snapToGrid: false,
+      groups: [] // Layer groups for hierarchical organization
     };
 
     // Canvas Setup
@@ -2492,6 +2493,33 @@
       if (state.selectedShapes.length < 2) return;
       
       saveState();
+      
+      // Use layer groups module if available
+      if (window.createLayerGroupModule) {
+        const group = window.createLayerGroupModule(state.selectedShapes);
+        if (group) {
+          // Store group in state
+          if (!state.groups) {
+            state.groups = [];
+          }
+          state.groups.push(group);
+          
+          // Update shapes with group references
+          state.selectedShapes.forEach(shape => {
+            const groupShape = group.shapes.find(s => s.id === shape.id);
+            if (groupShape) {
+              Object.assign(shape, groupShape);
+            }
+          });
+          
+          updateStatus(`Grouped ${state.selectedShapes.length} shapes`);
+          updateLayersList();
+          redraw();
+          return;
+        }
+      }
+      
+      // Fallback to original implementation
       const groupId = 'group_' + Date.now();
       const minX = Math.min(...state.selectedShapes.map(s => s.x));
       const minY = Math.min(...state.selectedShapes.map(s => s.y));
@@ -2504,6 +2532,7 @@
       });
       
       updateStatus(`Grouped ${state.selectedShapes.length} shapes`);
+      updateLayersList();
       redraw();
     }
 
@@ -2511,6 +2540,34 @@
       if (!state.selectedShape || !state.selectedShape._group) return;
       
       saveState();
+      
+      // Use layer groups module if available
+      if (window.ungroupLayerGroupModule && state.groups) {
+        const groupId = state.selectedShape._group;
+        const group = state.groups.find(g => g.id === groupId);
+        
+        if (group) {
+          const ungroupedShapes = window.ungroupLayerGroupModule(group);
+          
+          // Update shapes with ungrouped positions
+          ungroupedShapes.forEach(ungrouped => {
+            const shape = state.shapes.find(s => s.id === ungrouped.id);
+            if (shape) {
+              Object.assign(shape, ungrouped);
+            }
+          });
+          
+          // Remove group from state
+          state.groups = state.groups.filter(g => g.id !== groupId);
+          
+          updateStatus(`Ungrouped ${ungroupedShapes.length} shapes`);
+          updateLayersList();
+          redraw();
+          return;
+        }
+      }
+      
+      // Fallback to original implementation
       const groupId = state.selectedShape._group;
       const groupedShapes = state.shapes.filter(s => s._group === groupId);
       
@@ -2521,6 +2578,7 @@
       });
       
       updateStatus(`Ungrouped ${groupedShapes.length} shapes`);
+      updateLayersList();
       redraw();
     }
 
@@ -3652,6 +3710,18 @@
     import { exportToSVG as exportToSVGModule, downloadSVG as downloadSVGModule } from './js/utils/svg-export.js';
     import { exportToPDF as exportToPDFModule, downloadPDF as downloadPDFModule } from './js/utils/pdf-export.js';
     import { showExportOptionsDialog as showExportOptionsDialogModule } from './js/features/export-options.js';
+    import { 
+      createLayerGroup as createLayerGroupModule, 
+      ungroupLayerGroup as ungroupLayerGroupModule,
+      getGroupShapes as getGroupShapesModule,
+      isShapeInGroup as isShapeInGroupModule,
+      getShapeGroupId as getShapeGroupIdModule,
+      updateGroupBounds as updateGroupBoundsModule,
+      moveGroup as moveGroupModule,
+      toggleGroupExpansion as toggleGroupExpansionModule,
+      renameGroup as renameGroupModule,
+      deleteGroup as deleteGroupModule
+    } from './js/features/layer-groups.js';
     
     // Make utilities available globally for backward compatibility
     window.rgbToHex = rgbToHex;
@@ -3711,6 +3781,16 @@
     window.exportToPDFModule = exportToPDFModule;
     window.downloadPDFModule = downloadPDFModule;
     window.showExportOptionsDialogModule = showExportOptionsDialogModule;
+    window.createLayerGroupModule = createLayerGroupModule;
+    window.ungroupLayerGroupModule = ungroupLayerGroupModule;
+    window.getGroupShapesModule = getGroupShapesModule;
+    window.isShapeInGroupModule = isShapeInGroupModule;
+    window.getShapeGroupIdModule = getShapeGroupIdModule;
+    window.updateGroupBoundsModule = updateGroupBoundsModule;
+    window.moveGroupModule = moveGroupModule;
+    window.toggleGroupExpansionModule = toggleGroupExpansionModule;
+    window.renameGroupModule = renameGroupModule;
+    window.deleteGroupModule = deleteGroupModule;
     
     // Initialize styles for error handler, loading states, and undo/redo feedback
     initErrorHandlerStyles();
