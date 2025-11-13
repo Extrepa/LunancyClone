@@ -526,7 +526,7 @@
             state.transformHandle = handle.type;
             state.transformStartX = pos.x;
             state.transformStartY = pos.y;
-            state.transformStartShape = cloneStateUtil ? cloneStateUtil(state.selectedShape) : JSON.parse(JSON.stringify(state.selectedShape));
+            state.transformStartShape = deepClone(state.selectedShape);
             canvas.style.cursor = handle.cursor;
             return;
           }
@@ -1105,7 +1105,7 @@
         const offsetX = Math.cos(angle) * radius;
         const offsetY = Math.sin(angle) * radius;
         
-        const copy = JSON.parse(JSON.stringify(shape));
+        const copy = deepClone(shape);
         copy.id = Date.now() + i;
         copy.x = centerX + offsetX - (copy.width || 100) / 2;
         copy.y = centerY + offsetY - (copy.height || 100) / 2;
@@ -1809,8 +1809,11 @@
       }
     }
 
-    // rgbToHex is now imported from js/utils/color.js
-    // Using window.rgbToHex for backward compatibility
+    // Use module function if available, otherwise fallback
+    function rgbToHex(r, g, b) {
+      if (window.rgbToHex) return window.rgbToHex(r, g, b);
+      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
 
     // Selection
     function findShapeAt(x, y) {
@@ -2174,7 +2177,7 @@
       const pastedShapes = [];
       
       state.clipboard.forEach(clipboardShape => {
-        const newShape = JSON.parse(JSON.stringify(clipboardShape));
+        const newShape = deepClone(clipboardShape);
         newShape.id = Date.now() + Math.random();
         newShape.x = (newShape.x || 0) + offset;
         newShape.y = (newShape.y || 0) + offset;
@@ -2200,7 +2203,7 @@
       const duplicatedShapes = [];
       
       shapesToDuplicate.forEach(shape => {
-        const newShape = JSON.parse(JSON.stringify(shape));
+        const newShape = deepClone(shape);
         newShape.id = Date.now() + Math.random();
         newShape.x = (newShape.x || 0) + offset;
         newShape.y = (newShape.y || 0) + offset;
@@ -2286,9 +2289,25 @@
     let history = [];
     let historyIndex = -1;
 
+    // Use module function if available, otherwise fallback
+    function deepClone(data) {
+      if (window.cloneStateUtil) {
+        return window.cloneStateUtil(data);
+      }
+      return JSON.parse(JSON.stringify(data));
+    }
+    
+    // Also provide cloneShape for shape-specific cloning
+    function cloneShape(shape) {
+      if (window.cloneShapeUtil) {
+        return window.cloneShapeUtil(shape);
+      }
+      return JSON.parse(JSON.stringify(shape));
+    }
+
     function saveState() {
       history = history.slice(0, historyIndex + 1);
-      history.push(JSON.parse(JSON.stringify(state.shapes)));
+      history.push(deepClone(state.shapes));
       historyIndex++;
       if (history.length > 50) {
         history.shift();
@@ -2299,7 +2318,7 @@
     function undo() {
       if (historyIndex > 0) {
         historyIndex--;
-        state.shapes = JSON.parse(JSON.stringify(history[historyIndex]));
+        state.shapes = deepClone(history[historyIndex]);
         updateLayersList();
         redraw();
       }
@@ -2308,7 +2327,7 @@
     function redo() {
       if (historyIndex < history.length - 1) {
         historyIndex++;
-        state.shapes = JSON.parse(JSON.stringify(history[historyIndex]));
+        state.shapes = deepClone(history[historyIndex]);
         updateLayersList();
         redraw();
       }
@@ -2322,7 +2341,7 @@
       const component = {
         id: 'comp_' + Date.now(),
         name: prompt('Component name:', 'Component ' + (state.components.length + 1)) || 'Component',
-        shapes: JSON.parse(JSON.stringify(shapes)),
+        shapes: deepClone(shapes),
         createdAt: Date.now()
       };
       state.components.push(component);
@@ -2339,7 +2358,7 @@
         componentId: componentId,
         x: x,
         y: y,
-        shapes: JSON.parse(JSON.stringify(component.shapes))
+        shapes: deepClone(component.shapes)
       };
 
       // Offset shapes to instance position
@@ -2964,11 +2983,11 @@
       updateComponentsList();
       updateCommentsList();
       
-      // Load from localStorage if available
+      // Load from localStorage if available - Use module if available
       try {
-        const saved = localStorage.getItem('designToolState');
+        const saved = window.loadStateUtil ? window.loadStateUtil() : null;
         if (saved) {
-          const data = JSON.parse(saved);
+          const data = saved;
           if (data.shapes && Array.isArray(data.shapes)) {
             state.shapes = data.shapes;
           }
@@ -2985,32 +3004,76 @@
           }
           updateLayersList();
           redraw();
+        } else {
+          // Fallback to original localStorage access
+          const savedStr = localStorage.getItem('designToolState');
+          if (savedStr) {
+            const data = JSON.parse(savedStr);
+            if (data.shapes && Array.isArray(data.shapes)) {
+              state.shapes = data.shapes;
+            }
+            if (data.components && Array.isArray(data.components)) {
+              state.components = data.components;
+              updateComponentsList();
+            }
+            if (data.comments && Array.isArray(data.comments)) {
+              state.comments = data.comments;
+              updateCommentsList();
+            }
+            if (data.autoLayout) {
+              state.autoLayout = { ...state.autoLayout, ...data.autoLayout };
+            }
+            updateLayersList();
+            redraw();
+          }
         }
       } catch (e) {
         console.warn('Could not load saved state:', e);
       }
       
-      // Auto-save periodically
-      setInterval(() => {
-        try {
-          localStorage.setItem('designToolState', JSON.stringify({
-            shapes: state.shapes,
-            components: state.components,
-            comments: state.comments,
-            autoLayout: state.autoLayout
-          }));
-        } catch (e) {
-          console.warn('Could not save state:', e);
-        }
-      }, 30000); // Every 30 seconds
+      // Auto-save periodically - Use module if available
+      if (window.setupAutoSave) {
+        window.setupAutoSave(state, 30000);
+      } else {
+        // Fallback to original implementation
+        setInterval(() => {
+          try {
+            localStorage.setItem('designToolState', JSON.stringify({
+              shapes: state.shapes,
+              components: state.components,
+              comments: state.comments,
+              autoLayout: state.autoLayout
+            }));
+          } catch (e) {
+            console.warn('Could not save state:', e);
+          }
+        }, 30000); // Every 30 seconds
+      }
     }
     
     init();
   </script>
   <script type="module">
-    // Utility modules are available but not yet integrated
-    // This is a placeholder for future full modularization
-    // Current implementation maintains backward compatibility
+    // Import utility modules
+    import { rgbToHex, hexToRgb } from './js/utils/color.js';
+    import { cloneState, cloneShape } from './js/utils/clone.js';
+    import { getCanvasPos, getScreenPos } from './js/utils/coordinates.js';
+    import { saveState as saveStateUtil, loadState as loadStateUtil, setupAutoSave } from './js/utils/storage.js';
+    import { HistoryManager } from './js/utils/history.js';
+    
+    // Make utilities available globally for backward compatibility
+    window.rgbToHex = rgbToHex;
+    window.hexToRgb = hexToRgb;
+    window.cloneStateUtil = cloneState;
+    window.cloneShapeUtil = cloneShape;
+    window.getCanvasPosUtil = getCanvasPos;
+    window.getScreenPosUtil = getScreenPos;
+    window.saveStateUtil = saveStateUtil;
+    window.loadStateUtil = loadStateUtil;
+    window.setupAutoSave = setupAutoSave;
+    window.HistoryManager = HistoryManager;
+    
+    console.log('Module utilities loaded');
   </script>
 </body>
 </html>
