@@ -54,10 +54,24 @@ export interface Shape {
 
   // Styling
   fill?: string;                    // Fill color (CSS color string)
+  fillType?: 'solid' | 'gradient';  // Fill type
   stroke?: string;                  // Stroke color (CSS color string)
   strokeWidth?: number;             // Stroke width in pixels
   opacity?: number;                 // Opacity (0-1)
   rotation?: number;                // Rotation in degrees
+  
+  // Gradient properties
+  gradientStart?: string;           // Gradient start color
+  gradientEnd?: string;             // Gradient end color
+  gradientDirection?: 'horizontal' | 'vertical' | 'diagonal'; // Gradient direction
+  
+  // Effects
+  blur?: number;                    // Blur amount in pixels
+  shadow?: boolean;                 // Enable shadow
+  shadowColor?: string;             // Shadow color
+  shadowBlur?: number;              // Shadow blur amount
+  shadowOffsetX?: number;           // Shadow X offset
+  shadowOffsetY?: number;           // Shadow Y offset
 
   // Text-specific properties
   text?: string;                    // Text content (for text shapes)
