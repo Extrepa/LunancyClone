@@ -498,8 +498,11 @@
     canvas.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('mouseleave', handleMouseUp);
 
-    // Coordinate conversion (using utility module)
+    // Coordinate conversion - Use module if available, otherwise fallback
     function getCanvasPos(e) {
+      if (window.getCanvasPosUtil) {
+        return window.getCanvasPosUtil(e, canvas, state);
+      }
       const rect = canvas.getBoundingClientRect();
       return {
         x: (e.clientX - rect.left) / state.zoom - state.panX,
