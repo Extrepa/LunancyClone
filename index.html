@@ -2350,22 +2350,150 @@
       }
     });
 
-    // Layers Panel
+    // Layers Panel with hierarchical groups support
     function updateLayersList() {
       const list = document.getElementById('layersList');
       list.innerHTML = '';
+      
+      // Build flat list of items (groups and ungrouped shapes)
+      const items = [];
+      const groupedShapeIds = new Set();
+      
+      // Process groups first (if groups module is available)
+      if (window.getGroupShapesModule && state.groups && state.groups.length > 0) {
+        state.groups.forEach(group => {
+          if (!group.expanded) {
+            // Group is collapsed - add group header only
+            items.push({ type: 'group', data: group, collapsed: true });
+            // Mark all shapes in group as grouped
+            const groupShapes = window.getGroupShapesModule(group);
+            groupShapes.forEach(shape => groupedShapeIds.add(shape.id));
+          } else {
+            // Group is expanded - add group header and its shapes
+            items.push({ type: 'group', data: group, collapsed: false });
+            // Mark all shapes in group as grouped
+            const groupShapes = window.getGroupShapesModule(group);
+            groupShapes.forEach(shape => groupedShapeIds.add(shape.id));
+            // Add shapes in group (indented)
+            groupShapes.forEach(shape => {
+              const actualShape = state.shapes.find(s => s.id === shape.id);
+              if (actualShape) {
+                items.push({ type: 'shape', data: actualShape, inGroup: true, groupId: group.id });
+              }
+            });
+          }
+        });
+      } else if (state.groups && state.groups.length > 0) {
+        // Fallback: mark grouped shapes without module
+        state.groups.forEach(group => {
+          if (group.shapes) {
+            group.shapes.forEach(shape => groupedShapeIds.add(shape.id));
+          }
+        });
+      }
+      
+      // Add ungrouped shapes
       state.shapes.slice().reverse().forEach(shape => {
-        const li = document.createElement('li');
-        const isSelected = state.selectedShape === shape || state.selectedShapes.includes(shape);
-        li.className = 'layer-item' + (isSelected ? ' selected' : '');
-        li.innerHTML = `
-          <div class="layer-visibility ${shape.visible !== false ? 'visible' : ''}" 
-               onclick="event.stopPropagation(); toggleLayerVisibility(${shape.id})"></div>
-          <span onclick="selectShapeById(${shape.id}, event)">${shape.type} (${shape.id})</span>
-        `;
-        list.appendChild(li);
+        if (!groupedShapeIds.has(shape.id) && (!shape._group || !state.groups || !state.groups.find(g => g.id === shape._group))) {
+          items.push({ type: 'shape', data: shape, inGroup: false });
+        }
+      });
+      
+      // Render items
+      items.forEach(item => {
+        if (item.type === 'group') {
+          const group = item.data;
+          const li = document.createElement('li');
+          li.className = 'layer-item layer-group' + (group.expanded === false ? ' collapsed' : '');
+          li.innerHTML = `
+            <div class="group-expand" onclick="event.stopPropagation(); toggleGroupExpansion('${group.id}')">
+              ${group.expanded !== false ? '▼' : '▶'}
+            </div>
+            <div class="layer-visibility ${group.visible !== false ? 'visible' : ''}" 
+                 onclick="event.stopPropagation(); toggleGroupVisibility('${group.id}')"></div>
+            <span onclick="selectGroupById('${group.id}', event)" title="${group.name || 'Group'}">
+              ${group.name || 'Group'} (${group.shapes ? group.shapes.length : 0})
+            </span>
+          `;
+          list.appendChild(li);
+        } else {
+          const shape = item.data;
+          const isSelected = state.selectedShape === shape || state.selectedShapes.includes(shape);
+          const indent = item.inGroup ? ' style="padding-left: 20px;"' : '';
+          const li = document.createElement('li');
+          li.className = 'layer-item' + (isSelected ? ' selected' : '') + (item.inGroup ? ' in-group' : '');
+          li.setAttribute('data-group', item.inGroup ? item.groupId : '');
+          li.innerHTML = `
+            <div class="layer-visibility ${shape.visible !== false ? 'visible' : ''}" 
+                 onclick="event.stopPropagation(); toggleLayerVisibility(${shape.id})"></div>
+            <span onclick="selectShapeById(${shape.id}, event)"${indent}>${shape.type} (${shape.id})</span>
+          `;
+          list.appendChild(li);
+        }
       });
     }
+    
+    // Group management functions
+    window.toggleGroupExpansion = (groupId) => {
+      if (window.toggleGroupExpansionModule && state.groups) {
+        const group = state.groups.find(g => g.id === groupId);
+        if (group) {
+          window.toggleGroupExpansionModule(group);
+          updateLayersList();
+        }
+      }
+    };
+    
+    window.toggleGroupVisibility = (groupId) => {
+      if (state.groups) {
+        const group = state.groups.find(g => g.id === groupId);
+        if (group) {
+          group.visible = group.visible === false;
+          // Update visibility of all shapes in group
+          if (window.getGroupShapesModule) {
+            const groupShapes = window.getGroupShapesModule(group);
+            groupShapes.forEach(shapeData => {
+              const shape = state.shapes.find(s => s.id === shapeData.id);
+              if (shape) {
+                shape.visible = group.visible;
+              }
+            });
+          }
+          updateLayersList();
+          redraw();
+        }
+      }
+    };
+    
+    window.selectGroupById = (groupId, event) => {
+      if (state.groups) {
+        const group = state.groups.find(g => g.id === groupId);
+        if (group && window.getGroupShapesModule) {
+          const groupShapes = window.getGroupShapesModule(group);
+          const actualShapes = groupShapes
+            .map(shapeData => state.shapes.find(s => s.id === shapeData.id))
+            .filter(s => s !== undefined);
+          
+          if (event && (event.shiftKey || event.metaKey || event.ctrlKey)) {
+            // Multi-select: add group shapes to selection
+            actualShapes.forEach(shape => {
+              if (!state.selectedShapes.includes(shape)) {
+                state.selectedShapes.push(shape);
+              }
+            });
+            if (actualShapes.length > 0) {
+              state.selectedShape = actualShapes[0];
+            }
+          } else {
+            // Single select: select all shapes in group
+            state.selectedShapes = actualShapes;
+            state.selectedShape = actualShapes.length > 0 ? actualShapes[0] : null;
+          }
+          updateLayersList();
+          redraw();
+        }
+      }
+    };
 
     window.selectShapeById = (id, event) => {
       const shape = state.shapes.find(s => s.id === id);
