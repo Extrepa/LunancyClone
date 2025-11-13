@@ -3370,25 +3370,132 @@
       return layer;
     }
 
-    // Update export button to include sketch export
+    // Export handler - will be set up after modules load
+    async function handleExport(options) {
+      try {
+        const shapesToExport = options.exportSelection 
+          ? (state.selectedShape ? [state.selectedShape] : (state.selectedShapes.length > 0 ? state.selectedShapes : state.shapes))
+          : state.shapes;
+        
+        if (options.format === 'png') {
+          // Export PNG with resolution scaling
+          const scale = options.resolution || 1;
+          const exportCanvas = document.createElement('canvas');
+          exportCanvas.width = canvas.width * scale;
+          exportCanvas.height = canvas.height * scale;
+          const exportCtx = exportCanvas.getContext('2d');
+          
+          // Scale context
+          exportCtx.scale(scale, scale);
+          
+          // Draw background
+          exportCtx.fillStyle = '#ffffff';
+          exportCtx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw shapes
+          shapesToExport.forEach(shape => {
+            if (shape.visible !== false) {
+              if (window.drawShapeModule) {
+                window.drawShapeModule(exportCtx, shape);
+              } else {
+                drawShape(shape);
+              }
+            }
+          });
+          
+          // Export
+          exportCanvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `design-${scale}x.png`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+          });
+          
+          if (window.showSuccessModule) {
+            window.showSuccessModule(`Exported PNG at ${scale}x resolution`);
+          }
+        } else if (options.format === 'svg') {
+          // Export SVG
+          if (window.exportToSVGModule && window.downloadSVGModule) {
+            const svgString = window.exportToSVGModule(shapesToExport, {
+              width: canvas.width,
+              height: canvas.height,
+              includeBackground: options.includeBackground,
+              backgroundColor: options.backgroundColor || '#ffffff'
+            });
+            window.downloadSVGModule(svgString, 'design.svg');
+            
+            if (window.showSuccessModule) {
+              window.showSuccessModule('Exported SVG file');
+            }
+          } else {
+            if (window.showErrorModule) {
+              window.showErrorModule('SVG export not available');
+            }
+          }
+        } else if (options.format === 'json') {
+          // Export JSON
+          const data = JSON.stringify({
+            shapes: shapesToExport,
+            components: state.components,
+            comments: state.comments
+          }, null, 2);
+          const blob = new Blob([data], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'design.json';
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 100);
+          
+          if (window.showSuccessModule) {
+            window.showSuccessModule('Exported JSON file');
+          }
+        } else if (options.format === 'sketch') {
+          // Export Sketch
+          await exportSketchFile();
+          
+          if (window.showSuccessModule) {
+            window.showSuccessModule('Exported Sketch file');
+          }
+        }
+      } catch (e) {
+        console.error('Export error:', e);
+        if (window.showErrorModule) {
+          window.showErrorModule('Export failed: ' + (e.message || 'Unknown error'), e);
+        }
+      }
+    }
+    
+    // Update export button to show export options dialog
     document.getElementById('exportBtn').addEventListener('click', async () => {
-      const format = confirm('Export as Sketch file? (OK for Sketch, Cancel for JSON)');
-      if (format) {
-        await exportSketchFile();
+      if (window.showExportOptionsDialogModule) {
+        window.showExportOptionsDialogModule({
+          onExport: handleExport,
+          canvas: canvas,
+          state: state
+        });
       } else {
-        const data = JSON.stringify({
-          shapes: state.shapes,
-          components: state.components,
-          comments: state.comments
-        }, null, 2);
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'design.json';
-        a.click();
-        // Revoke URL after a short delay to ensure download starts
-        setTimeout(() => URL.revokeObjectURL(url), 100);
+        // Fallback to simple dialog
+        const format = confirm('Export as Sketch file? (OK for Sketch, Cancel for JSON)');
+        if (format) {
+          await exportSketchFile();
+        } else {
+          const data = JSON.stringify({
+            shapes: state.shapes,
+            components: state.components,
+            comments: state.comments
+          }, null, 2);
+          const blob = new Blob([data], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'design.json';
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 100);
+        }
       }
     });
 
@@ -3575,6 +3682,9 @@
     window.snapToGridModule = snapToGridModule;
     window.snapPointToGridModule = snapPointToGridModule;
     window.snapShapeToGridModule = snapShapeToGridModule;
+    window.exportToSVGModule = exportToSVGModule;
+    window.downloadSVGModule = downloadSVGModule;
+    window.showExportOptionsDialogModule = showExportOptionsDialogModule;
     
     // Initialize styles for error handler, loading states, and undo/redo feedback
     initErrorHandlerStyles();
