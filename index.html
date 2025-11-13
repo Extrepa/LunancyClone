@@ -470,17 +470,17 @@
         if (state.selectedShape || state.selectedShapes.length > 0) {
           duplicateShapes();
         }
+      } else if (key === 'g' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
+        e.preventDefault();
+        // Ungroup (Cmd/Ctrl+Shift+G) - Check shift first (more specific)
+        if (state.selectedShape && state.selectedShape._group) {
+          ungroupShapes();
+        }
       } else if (key === 'g' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         // Group (Cmd/Ctrl+G)
         if (state.selectedShapes.length > 1) {
           groupShapes();
-        }
-      } else if (key === 'g' && (e.metaKey || e.ctrlKey) && e.shiftKey) {
-        e.preventDefault();
-        // Ungroup (Cmd/Ctrl+Shift+G)
-        if (state.selectedShape && state.selectedShape._group) {
-          ungroupShapes();
         }
       } else if (key === 'delete' || key === 'backspace') {
         if (state.selectedShape || state.selectedShapes.length > 0) {
@@ -3305,11 +3305,9 @@
     window.applyAutoLayoutModule = applyAutoLayoutModule;
     window.initAutoLayoutControlsModule = initAutoLayoutControlsModule;
     
-    // Store redraw function globally so modules can access it
-    window.redraw = null;
-    window.canvas = null;
-    window.ctx = null;
-    window.state = null;
+    // Note: window.redraw, window.canvas, window.ctx, and window.state are
+    // initialized by the main script (lines 266-267 and 1592-1593) and should
+    // NOT be set here. Modules depend on these globals being available.
     
     console.log('Module utilities, shapes, and features loaded');
   </script>
