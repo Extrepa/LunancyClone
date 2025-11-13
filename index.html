@@ -1728,10 +1728,50 @@
       // Draw all shapes
       state.shapes.forEach(shape => {
         if (shape.visible !== false) {
-          if (window.drawShapeModule) {
-            window.drawShapeModule(ctx, shape);
+          // Apply blend mode if set
+          if (shape.blendMode && window.applyBlendModeModule) {
+            window.applyBlendModeModule(ctx, shape.blendMode);
+          }
+          
+          // Apply mask if set
+          if (shape._hasMask && shape._maskId && window.getMaskShapeModule && window.renderWithMaskModule) {
+            const maskShape = window.getMaskShapeModule(shape, state.shapes);
+            if (maskShape) {
+              if (window.drawShapeModule && window.renderWithMaskModule) {
+                window.renderWithMaskModule(ctx, shape, maskShape, window.drawShapeModule);
+              } else {
+                // Fallback: render with mask manually
+                ctx.save();
+                if (window.createClipPathModule) {
+                  window.createClipPathModule(ctx, maskShape);
+                }
+                if (window.drawShapeModule) {
+                  window.drawShapeModule(ctx, shape);
+                } else {
+                  drawShape(shape);
+                }
+                ctx.restore();
+              }
+            } else {
+              // Mask not found, render normally
+              if (window.drawShapeModule) {
+                window.drawShapeModule(ctx, shape);
+              } else {
+                drawShape(shape);
+              }
+            }
           } else {
-            drawShape(shape);
+            // No mask, render normally
+            if (window.drawShapeModule) {
+              window.drawShapeModule(ctx, shape);
+            } else {
+              drawShape(shape);
+            }
+          }
+          
+          // Reset blend mode after each shape
+          if (shape.blendMode && window.resetBlendModeModule) {
+            window.resetBlendModeModule(ctx);
           }
         }
       });
@@ -2190,6 +2230,22 @@
         document.getElementById('blur').value = shape.blur;
         document.getElementById('blurValue').textContent = shape.blur + 'px';
       }
+      
+      // Update blend mode
+      if (shape.blendMode) {
+        document.getElementById('blendMode').value = shape.blendMode;
+      } else {
+        document.getElementById('blendMode').value = 'normal';
+      }
+      
+      // Update mask buttons state
+      const createMaskBtn = document.getElementById('createMaskBtn');
+      const removeMaskBtn = document.getElementById('removeMaskBtn');
+      if (shape._hasMask) {
+        removeMaskBtn.disabled = false;
+      } else {
+        removeMaskBtn.disabled = true;
+      }
     }
 
     // Property Change Handlers
@@ -2347,6 +2403,58 @@
         state.selectedShape.blur = parseFloat(e.target.value);
         document.getElementById('blurValue').textContent = e.target.value + 'px';
         redraw();
+      }
+    });
+    
+    document.getElementById('blendMode').addEventListener('change', (e) => {
+      if (state.selectedShape) {
+        state.selectedShape.blendMode = e.target.value;
+        redraw();
+      }
+    });
+    
+    document.getElementById('createMaskBtn').addEventListener('click', () => {
+      if (state.selectedShapes.length >= 2) {
+        // First shape is mask, rest are masked
+        const maskShape = state.selectedShapes[0];
+        const maskedShapes = state.selectedShapes.slice(1);
+        
+        saveState();
+        maskedShapes.forEach(shape => {
+          if (window.createMaskModule && window.canUseAsMaskModule && window.canUseAsMaskModule(maskShape)) {
+            window.createMaskModule(shape, maskShape);
+          } else {
+            // Fallback
+            shape._maskId = maskShape.id;
+            shape._hasMask = true;
+          }
+        });
+        updateStatus(`Created mask with ${maskedShapes.length} shape(s)`);
+        redraw();
+      } else if (state.selectedShape && state.selectedShapes.length === 1) {
+        // Need at least 2 shapes: mask + masked shape
+        if (window.showWarningModule) {
+          window.showWarningModule('Select at least 2 shapes: first is mask, others are masked');
+        }
+      }
+    });
+    
+    document.getElementById('removeMaskBtn').addEventListener('click', () => {
+      if (state.selectedShape && state.selectedShape._hasMask) {
+        saveState();
+        if (window.removeMaskModule) {
+          window.removeMaskModule(state.selectedShape);
+        } else {
+          // Fallback
+          delete state.selectedShape._maskId;
+          delete state.selectedShape._hasMask;
+        }
+        updateStatus('Removed mask');
+        redraw();
+      } else {
+        if (window.showWarningModule) {
+          window.showWarningModule('Select a shape with a mask to remove it');
+        }
       }
     });
 
@@ -3850,6 +3958,20 @@
       renameGroup as renameGroupModule,
       deleteGroup as deleteGroupModule
     } from './js/features/layer-groups.js';
+    import {
+      applyBlendMode as applyBlendModeModule,
+      resetBlendMode as resetBlendModeModule,
+      getBlendModeName as getBlendModeNameModule,
+      getBlendModesList as getBlendModesListModule
+    } from './js/core/blend-modes.js';
+    import {
+      applyMask as applyMaskModule,
+      canUseAsMask as canUseAsMaskModule,
+      createMask as createMaskModule,
+      removeMask as removeMaskModule,
+      getMaskShape as getMaskShapeModule,
+      renderWithMask as renderWithMaskModule
+    } from './js/core/masking.js';
     
     // Make utilities available globally for backward compatibility
     window.rgbToHex = rgbToHex;
@@ -3919,6 +4041,16 @@
     window.toggleGroupExpansionModule = toggleGroupExpansionModule;
     window.renameGroupModule = renameGroupModule;
     window.deleteGroupModule = deleteGroupModule;
+    window.applyBlendModeModule = applyBlendModeModule;
+    window.resetBlendModeModule = resetBlendModeModule;
+    window.getBlendModeNameModule = getBlendModeNameModule;
+    window.getBlendModesListModule = getBlendModesListModule;
+    window.applyMaskModule = applyMaskModule;
+    window.canUseAsMaskModule = canUseAsMaskModule;
+    window.createMaskModule = createMaskModule;
+    window.removeMaskModule = removeMaskModule;
+    window.getMaskShapeModule = getMaskShapeModule;
+    window.renderWithMaskModule = renderWithMaskModule;
     
     // Initialize styles for error handler, loading states, and undo/redo feedback
     initErrorHandlerStyles();
