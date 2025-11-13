@@ -58,6 +58,7 @@ export function showExportOptionsDialog({ onExport, canvas, state }) {
   const formatOptions = [
     { value: 'png', label: 'PNG (Image)', description: 'Raster image format' },
     { value: 'svg', label: 'SVG (Vector)', description: 'Scalable vector graphics' },
+    { value: 'pdf', label: 'PDF (Document)', description: 'Portable document format' },
     { value: 'json', label: 'JSON (Data)', description: 'Design data file' },
     { value: 'sketch', label: 'Sketch', description: 'Sketch file format' }
   ];

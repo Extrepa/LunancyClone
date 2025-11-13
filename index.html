@@ -3453,6 +3453,27 @@
           if (window.showSuccessModule) {
             window.showSuccessModule('Exported JSON file');
           }
+        } else if (options.format === 'pdf') {
+          // Export PDF
+          if (window.exportToPDFModule && window.downloadPDFModule) {
+            const pdfBlob = await window.exportToPDFModule(shapesToExport, {
+              width: canvas.width,
+              height: canvas.height,
+              orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+              unit: 'px',
+              includeBackground: options.includeBackground,
+              backgroundColor: options.backgroundColor || '#ffffff'
+            });
+            window.downloadPDFModule(pdfBlob, 'design.pdf');
+            
+            if (window.showSuccessModule) {
+              window.showSuccessModule('Exported PDF file');
+            }
+          } else {
+            if (window.showErrorModule) {
+              window.showErrorModule('PDF export not available');
+            }
+          }
         } else if (options.format === 'sketch') {
           // Export Sketch
           await exportSketchFile();
@@ -3629,6 +3650,7 @@
     import { showUndoRedoFeedback as showUndoRedoFeedbackModule, initUndoRedoStyles } from './js/features/undo-redo-feedback.js';
     import { snapToGrid as snapToGridModule, snapPointToGrid as snapPointToGridModule, snapShapeToGrid as snapShapeToGridModule } from './js/core/snap-to-grid.js';
     import { exportToSVG as exportToSVGModule, downloadSVG as downloadSVGModule } from './js/utils/svg-export.js';
+    import { exportToPDF as exportToPDFModule, downloadPDF as downloadPDFModule } from './js/utils/pdf-export.js';
     import { showExportOptionsDialog as showExportOptionsDialogModule } from './js/features/export-options.js';
     
     // Make utilities available globally for backward compatibility
@@ -3686,6 +3708,8 @@
     window.snapShapeToGridModule = snapShapeToGridModule;
     window.exportToSVGModule = exportToSVGModule;
     window.downloadSVGModule = downloadSVGModule;
+    window.exportToPDFModule = exportToPDFModule;
+    window.downloadPDFModule = downloadPDFModule;
     window.showExportOptionsDialogModule = showExportOptionsDialogModule;
     
     // Initialize styles for error handler, loading states, and undo/redo feedback
